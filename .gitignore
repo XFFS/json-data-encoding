@@ -1,5 +1,4 @@
-# jbuilder working directory
 _build/
 
-**.merlin
+.merlin
 *.install

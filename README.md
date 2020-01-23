@@ -1,4 +1,4 @@
-# ocplib-json-typed
+# json-data-encoding
 
 This library is a collection of type-aware JSON utilities for OCaml.
 
@@ -26,9 +26,9 @@ representation. Two other representations are also provided.
   - `Json_repr_browser` interfaces JavaScripts objects. It is
     available only when compiling to JavaScript via
     `js_of_ocaml`.
-    Provided by the extra package `ocplib-json-typed-browser`.
+    Provided by the extra package `json-data-encoding-browser`.
   - `Json_repr_bson` is an implementation of a subset of BSON.
-    Provided by the extra package `ocplib-json-typed-bson`.
+    Provided by the extra package `json-data-encoding-bson`.
 
 Thanks to polymorphic variants, this library does not depend on any
 JSON library, so you are free to use whichever you want for printing
