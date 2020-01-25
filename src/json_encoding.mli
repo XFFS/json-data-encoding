@@ -446,21 +446,25 @@ val print_error
 
 (** {2 Advanced interface for using a custom JSON representation} *) (**********)
 
-module Make (Repr : Json_repr.Repr) : sig
+module type S = sig
+
+   type repr_value
 
   (** Same as {!construct} for a custom JSON representation. *)
-  val construct : 't encoding -> 't -> Repr.value
+  val construct : 't encoding -> 't -> repr_value
 
   (** Same as {!destruct} for a custom JSON representation. *)
-  val destruct : 't encoding -> Repr.value -> 't
+  val destruct : 't encoding -> repr_value -> 't
 
   (** Same as {!custom} for a custom JSON representation. *)
   val custom :
-    ('t -> Repr.value) -> (Repr.value -> 't) ->
+    ('t -> repr_value) -> (repr_value -> 't) ->
     schema: Json_schema.schema ->
     't encoding
 
 end
+
+module Make (Repr : Json_repr.Repr) : S with type repr_value = Repr.value
 
 (** Custom encoders for an OCaml type, given both custom conversion
     functions. The actual representation is not known in advance, so

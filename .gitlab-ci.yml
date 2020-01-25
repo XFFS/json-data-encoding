@@ -7,5 +7,8 @@ build-and-test:
     - opam depext json-data-encoding-browser json-data-encoding-bson json-data-encoding
     - opam install --deps-only .
     - dune build
+    - opam depext --dry-run crowbar alcotest
+    - opam install --deps-only --with-test .
+    - dune runtest
     - opam install .
 
