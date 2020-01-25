@@ -10,13 +10,11 @@ dev-repo: "git+https://gitlab.com/nomadic-labs/json-data-encoding"
 
 build: [
   ["dune" "build" "-j" jobs "-p" name]
-  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 
 depends: [
   "ocaml" {>= "4.03.0"}
-  "dune" {build & >= "1.7"}
+  "dune" {>= "1.7"}
   "json-data-encoding" {= version }
   "js_of_ocaml" {>= "3.3.0"}
-  "crowbar" { with-test }
 ]
