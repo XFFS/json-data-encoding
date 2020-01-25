@@ -18,4 +18,5 @@ depends: [
   "dune" {build & >= "1.7"}
   "json-data-encoding" {= version }
   "js_of_ocaml" {>= "3.3.0"}
+  "crowbar" { with-test }
 ]
