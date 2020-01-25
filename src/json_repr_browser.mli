@@ -24,7 +24,7 @@ type value
 module Repr : Json_repr.Repr with type value = value
 
 (** Pre-instanciated {!Json_encoding.Make}. *)
-module Json_encoding : module type of Json_encoding.Make (Repr)
+module Json_encoding : Json_encoding.S with type repr_value = value
 
 (** Pre-instanciated {!Json_encoding.Make}. *)
 module Json_query : module type of Json_query.Make (Repr)

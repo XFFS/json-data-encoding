@@ -46,7 +46,7 @@ type bson
 module Repr : Json_repr.Repr with type value = bson
 
 (** Pre-instanciated {!Json_encoding.Make}. *)
-module Json_encoding : module type of Json_encoding.Make (Repr)
+module Json_encoding : Json_encoding.S with type repr_value = bson
 
 (** Pre-instanciated {!Json_encoding.Make}. *)
 module Json_query : module type of Json_query.Make (Repr)

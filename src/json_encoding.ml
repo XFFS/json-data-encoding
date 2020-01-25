@@ -119,7 +119,24 @@ and 't case =
 
 (*-- construct / destruct / schema over the main GADT forms ------------------*)
 
-module Make (Repr : Json_repr.Repr) = struct
+module type S = sig
+
+   type repr_value
+
+  val construct : 't encoding -> 't -> repr_value
+
+  val destruct : 't encoding -> repr_value -> 't
+
+  val custom :
+    ('t -> repr_value) -> (repr_value -> 't) ->
+    schema: Json_schema.schema ->
+    't encoding
+
+end
+
+module Make (Repr : Json_repr.Repr) : S with type repr_value = Repr.value = struct
+
+   type repr_value = Repr.value
 
   let construct enc v =
     let rec construct
