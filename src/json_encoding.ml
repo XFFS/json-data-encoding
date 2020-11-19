@@ -4,6 +4,7 @@
 (*  json-data-encoding                                                  *)
 (*                                                                      *)
 (*    Copyright 2014 OCamlPro                                           *)
+(*    Copyright 2020 Nomadic Labs <contact@nomadic-labs.com>            *)
 (*                                                                      *)
 (*  This file is distributed under the terms of the GNU Lesser General  *)
 (*  Public License as published by the Free Software Foundation; either *)
@@ -1311,3 +1312,301 @@ let rec print_error ?print_unknown ppf = function
       Json_schema.print_error ?print_unknown ppf exn
 
 include Ezjsonm_encoding
+
+(* An alternative construction method that produces a [Seq.t] of Json lexeme
+   (compatible with [Jsonm.lexeme Seq.t]).
+
+   This alternative gives a lazy construction where the consumer of the returned
+   value requests further chunks as needed. This in turns allows for yielding in
+   Lwt/Async contexts. *)
+
+(* [jsonm_lexeme] is the type of json lexeme compatible with [Jsonm.lexeme].
+   Note that [Jsonm] was made before the [Seq.t] type was available in the
+   OCaml's standard-library.
+
+   @see https://erratique.ch/software/jsonm/doc/Jsonm/ Jsonm documentation *)
+type jsonm_lexeme =
+  [ `Null
+  | `Bool of bool
+  | `String of string
+  | `Float of float
+  | `Name of string
+  | `As
+  | `Ae
+  | `Os
+  | `Oe ]
+
+module JsonmLexemeSeq = struct
+  (* First, a few helper functions for operating on [Seq.t] *)
+
+  (* [++] is a constructor: [x ++ xs] is the sequence that starts with [x] and
+      continues with [xs], it is equivalent to [Seq.cons] (available in OCaml
+      4.11). *)
+  let ( ++ ) v s () = Seq.Cons (v, s)
+
+  (* [@] concatenates two sequences together. [xs @ ys] is a sequence that
+      contains the elements from the seuqence [xs] followed by the elements of
+      the sequence [ys]. It is equivalent to [Seq.append] (available in OCaml
+      4.11). *)
+  let rec ( @ ) (s1 : 'a Seq.t) (s2 : 'a Seq.t) : 'a Seq.t =
+   fun () ->
+    match s1 () with
+    | Seq.Nil ->
+        s2 ()
+    | Seq.Cons (v, s1) ->
+        Seq.Cons (v, s1 @ s2)
+
+  (* [s +< c +> e] is a sequence that starts with [s], continues with [c] and
+      ends with [e]. Below, this form is used to add object (resp. array)
+      delimiters ([`Os]/[`Oe]) (resp. ([`As]/[`Ae])) around the sequence of
+      lexemes that represents the contents of the object (resp. array). *)
+  let ( +< ) = ( ++ )
+
+  let ( +@ ) = ( @ )
+
+  let ( +> ) s v = s @ Seq.return v
+
+  (* [null] is a lexeme sequence representation of the null json value ([null]) *)
+  let null = Seq.return `Null
+
+  (* [empty_obj] is a lexeme sequence representation of the empty json object ([{}]). *)
+  let empty_obj =
+    let open Seq in
+    fun () -> Cons (`Os, fun () -> Cons (`Oe, empty))
+
+  (* [empty_arr] is a lexeme sequence representation of the empty json array ([[]]). *)
+  let empty_arr =
+    let open Seq in
+    fun () -> Cons (`As, fun () -> Cons (`Ae, empty))
+
+  (* convert an ezjsonm object into a lexeme sequence. This is useful for the
+     [Custom] tag.
+
+     An alternative is to have a [Json_repr.JsonmLexemeSeq] module to have a
+     direct [Custom]-to-jsonm-lexeme function. However, the specifics of the
+     [Repr] is not friendly to the jsonm-lexeme. Specifically the function
+     [view: value -> value view] requires to force the whole of the sequence. We
+     do not use [view] for writing so we might provide this in the future.
+
+     The implementation is rather straightforward, except that empty objects and
+     empty arrays are special-cased for performance. In the future, more
+     specific objects/arrays might also be (e.g., objects that contain a single
+     field with an immediate (non-nested) value). *)
+  let rec jsonm_lexeme_seq_of_ezjson ezj =
+    match ezj with
+    | `O [] ->
+        empty_obj
+    | `O kvs ->
+        `Os +< jsonm_lexeme_seq_of_ezjson_kvs kvs +> `Oe
+    | `A [] ->
+        empty_arr
+    | `A vs ->
+        `As +< jsonm_lexeme_seq_of_ezjson_vs vs +> `Ae
+    | `Bool b ->
+        Seq.return (`Bool b)
+    | `Float f ->
+        Seq.return (`Float f)
+    | `String s ->
+        Seq.return (`String s)
+    | `Null ->
+        null
+
+  (* we extract the two following sub-functions because we need them for
+     special cases when constructing objects/tups *)
+  and jsonm_lexeme_seq_of_ezjson_kvs kvs =
+    Seq.flat_map
+      (fun (k, v) -> `Name k ++ jsonm_lexeme_seq_of_ezjson v)
+      (List.to_seq kvs)
+
+  and jsonm_lexeme_seq_of_ezjson_vs vs =
+    Seq.flat_map (fun v -> jsonm_lexeme_seq_of_ezjson v) (List.to_seq vs)
+
+  let construct_seq enc v =
+    (* The main entry-point, it is mutually recursive with some other entry
+       points for specific "states" of the "state-machine" that this function
+       represents.
+       Note that this function mimics the {!Make}[.construct] function above in
+       this module. There are a few entries that differ, this is due to the
+       different target of the function (a sequence of lexeme vs an AST). In
+       those cases, comments are provided. *)
+    let rec construct : type t. t encoding -> t -> jsonm_lexeme Seq.t =
+      function
+      | Null ->
+          fun (() : t) -> null
+      | Empty ->
+          fun () -> empty_obj
+      | Ignore ->
+          fun () -> empty_obj
+      | Option t -> (
+          function None -> null | Some v -> (construct [@ocaml.tailcall]) t v )
+      | Constant str ->
+          fun () -> Seq.return (`String str)
+      | Int {int_name; to_float; lower_bound; upper_bound} ->
+          fun (i : t) ->
+            if i < lower_bound || i > upper_bound then
+              invalid_arg
+                ("Json_encoding.construct_seq: " ^ int_name ^ " out of range") ;
+            Seq.return (`Float (to_float i))
+      | Bool ->
+          fun (b : t) -> Seq.return (`Bool b)
+      | String ->
+          fun s -> Seq.return (`String s)
+      | Float (Some {minimum; maximum; float_name}) ->
+          fun float ->
+            if float < minimum || float > maximum then
+              invalid_arg
+                ("Json_encoding.construct_seq: " ^ float_name ^ " out of range") ;
+            Seq.return (`Float float)
+      | Float None ->
+          fun float -> Seq.return (`Float float)
+      | Describe {encoding = t} ->
+          fun v -> (construct [@ocaml.tailcall]) t v
+      | Custom ({write}, _) ->
+          fun v ->
+            let ezjson = write (module Json_repr.Ezjsonm) v in
+            jsonm_lexeme_seq_of_ezjson ezjson
+      | Conv (ffrom, _, t, _) ->
+          fun v -> (construct [@ocaml.tailcall]) t (ffrom v)
+      | Mu {self} as enc ->
+          fun v -> (construct [@ocaml.tailcall]) (self enc) v
+      | Array t -> (
+          function [||] -> empty_arr | vs -> `As +< construct_arr t vs +> `Ae )
+      | Obj (Req {name = n; encoding = t}) ->
+          fun v -> `Os +< construct_named n t v +> `Oe
+      | Obj (Dft {name = n; encoding = t; default = d}) ->
+          fun v ->
+            if v = d then empty_obj else `Os +< construct_named n t v +> `Oe
+      | Obj (Opt {name = n; encoding = t}) -> (
+          function
+          | None -> empty_obj | Some v -> `Os +< construct_named n t v +> `Oe )
+      | Objs (o1, o2) ->
+          (* For the objects inside an [Objs] we go to a different state of
+             the state-machine: we call the entry-point [construct_obj].
+             Note that the non-seq construction simply builds the
+             sub-objects and pops the content out of the object AST node.
+             This is not viable here because it'd force the sequence to
+             remove the last lexeme ([`Oe]). Trying a hybrid approach of
+             doing standard construction followed by a lazy Object delimiter
+             popping is more complicated than shifting to a different
+             state/entry-point. *)
+          fun (v1, v2) ->
+           `Os +< construct_obj o1 v1 +@ construct_obj o2 v2 +> `Oe
+      | Tup t ->
+          fun v -> `As +< construct t v +> `Ae
+      | Tups (o1, o2) ->
+          fun (v1, v2) ->
+            (* Similar to the Objs construction *)
+            `As +< construct_tup o1 v1 +@ construct_tup o2 v2 +> `Ae
+      | Union cases ->
+          fun v ->
+            let rec do_cases = function
+              | [] ->
+                  invalid_arg
+                    "Json_encoding.construct_seq: consequence of bad union"
+              | Case {encoding; proj} :: rest -> (
+                match proj v with
+                | Some v ->
+                    (construct [@ocaml.tailcall]) encoding v
+                | None ->
+                    do_cases rest )
+            in
+            do_cases cases
+    and construct_arr : type t. t encoding -> t array -> jsonm_lexeme Seq.t =
+     fun t vs ->
+      (* TODO: optimise this one for tailcall ? *)
+      Seq.flat_map (fun v -> construct t v) (Array.to_seq vs)
+    and construct_named :
+        type t. string -> t encoding -> t -> jsonm_lexeme Seq.t =
+     fun n t v -> `Name n ++ construct t v
+    and construct_obj
+        (* NOTE: we recurse on [construct_obj] (i.e., we stay in the same state
+           of the same machine) for all the constructors present in [is_obj]. *) :
+        type t. t encoding -> t -> jsonm_lexeme Seq.t = function
+      | Obj (Req {name = n; encoding = t}) ->
+          fun v -> construct_named n t v
+      | Obj (Dft {name = n; encoding = t; default = d}) ->
+          fun v -> if v <> d then construct_named n t v else Seq.empty
+      | Obj (Opt {name = n; encoding = t}) -> (
+          function None -> Seq.empty | Some v -> construct_named n t v )
+      | Obj _ ->
+          .
+          (* asserting we have covered all Obj cases to ensure that it cannot
+             go through the wildcard [_] below. *)
+      | Objs (o1, o2) ->
+          fun (v1, v2) -> construct_obj o1 v1 @ construct_obj o2 v2
+      | Conv (ffrom, _, t, _) ->
+          fun v -> construct_obj t (ffrom v)
+      | Empty ->
+          fun () -> Seq.empty
+      | Ignore ->
+          fun () -> Seq.empty
+      | Mu {self} as enc ->
+          fun v -> construct_obj (self enc) v
+      | Describe {encoding = t} ->
+          fun v -> construct_obj t v
+      | Union cases ->
+          fun v ->
+            let rec do_cases = function
+              | [] ->
+                  invalid_arg
+                    "Json_encoding.construct_seq: consequence of bad union"
+              | Case {encoding; proj} :: rest -> (
+                match proj v with
+                | Some v ->
+                    construct_obj encoding v
+                | None ->
+                    do_cases rest )
+            in
+            do_cases cases
+      | Custom ({write}, _) -> (
+          fun v ->
+            (* NOTE: This constructor is not in [is_obj] (because it is not
+               possible to statically determine whether it always produces
+               object) but it must be special-cased anyway. *)
+            match write (module Json_repr.Ezjsonm) v with
+            | `O kvs ->
+                jsonm_lexeme_seq_of_ezjson_kvs kvs
+            | `A _ | `Bool _ | `Float _ | `String _ | `Null ->
+                invalid_arg
+                  "Json_encoding.construct_seq: consequence of bad merge_objs"
+          )
+      | _ ->
+          (* In all other cases we raise a runtime exception. This is similar
+             to the way vanilla [construct] handles recursive calls returning
+             non-objects in the construction of an [Objs]. *)
+          invalid_arg
+            "Json_encoding.construct_seq: consequence of bad merge_objs"
+    and construct_tup (* Similar to construct_obj, but for tups *) :
+        type t. t encoding -> t -> jsonm_lexeme Seq.t = function
+      | Tup t ->
+          fun v -> (construct [@ocaml.tailcall]) t v
+      | Tups (o1, o2) ->
+          fun (v1, v2) -> construct_tup o1 v1 @ construct_tup o2 v2
+      | Conv (ffrom, _, t, _) ->
+          fun v -> construct_tup t (ffrom v)
+      | Mu {self} as enc ->
+          fun v -> construct_tup (self enc) v
+      | Describe {encoding = t} ->
+          fun v -> construct_tup t v
+      | Custom ({write}, _) -> (
+          fun v ->
+            match write (module Json_repr.Ezjsonm) v with
+            | `A vs ->
+                jsonm_lexeme_seq_of_ezjson_vs vs
+            | `O _ | `Bool _ | `Float _ | `String _ | `Null ->
+                invalid_arg
+                  "Json_encoding.construct_seq: consequence of bad merge_tups"
+          )
+      | _ ->
+          invalid_arg
+            "Json_encoding.construct_seq: consequence of bad merge_tups"
+    in
+    construct enc v
+end
+
+(* Exporting the important values from [JsonmLexemeSeq] *)
+
+let construct_seq : 't encoding -> 't -> jsonm_lexeme Seq.t =
+  JsonmLexemeSeq.construct_seq
+
+let jsonm_lexeme_seq_of_ezjson = JsonmLexemeSeq.jsonm_lexeme_seq_of_ezjson

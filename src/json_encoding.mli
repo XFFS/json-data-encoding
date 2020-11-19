@@ -2,6 +2,7 @@
 (*  json-data-encoding                                                  *)
 (*                                                                      *)
 (*    Copyright 2014 OCamlPro                                           *)
+(*    Copyright 2020 Nomadic Labs <contact@nomadic-labs.com>            *)
 (*                                                                      *)
 (*  This file is distributed under the terms of the GNU Lesser General  *)
 (*  Public License as published by the Free Software Foundation; either *)
@@ -57,6 +58,24 @@ type 'a encoding
     This function works with JSON data represented in the {!Json_repr.ezjsonm}
     format. See functor {!Make} for using another representation. *)
 val construct : 't encoding -> 't -> Json_repr.ezjsonm
+
+(** The type of json lexeme. This type is compatible with [Jsonm.lexeme] *)
+type jsonm_lexeme =
+  [ `Null
+  | `Bool of bool
+  | `String of string
+  | `Float of float
+  | `Name of string
+  | `As
+  | `Ae
+  | `Os
+  | `Oe ]
+
+(** Builds a lazy Seq representation of the OCaml value. *)
+val construct_seq : 't encoding -> 't -> jsonm_lexeme Seq.t
+
+(** Converts json AST ([ezjsonm]) into a sequence representation *)
+val jsonm_lexeme_seq_of_ezjson : Json_repr.ezjsonm -> jsonm_lexeme Seq.t
 
 (** Reads an OCaml value from a JSON value and an encoding.
     May raise [Cannot_destruct].

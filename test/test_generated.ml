@@ -1011,8 +1011,70 @@ let test_testable_yojson (testable : testable) =
   let module T = (val testable) in
   roundtrip (module Yojson_construct) "yo" T.pp T.ding T.v
 
+let pp_jsonm_lexeme fmt = function
+  | `Null ->
+      Format.pp_print_string fmt "null"
+  | `Bool true ->
+      Format.pp_print_string fmt "true"
+  | `Bool false ->
+      Format.pp_print_string fmt "false"
+  | `String _ ->
+      Format.pp_print_string fmt "\"..\""
+  | `Float _ ->
+      Format.pp_print_string fmt "(float)"
+  | `Name _ ->
+      Format.pp_print_string fmt "(name):"
+  | `As ->
+      Format.pp_print_string fmt "["
+  | `Ae ->
+      Format.pp_print_string fmt "]"
+  | `Os ->
+      Format.pp_print_string fmt "{"
+  | `Oe ->
+      Format.pp_print_string fmt "}"
+
+let pp_jsonm_lexeme_list fmt jls =
+  Format.pp_print_string fmt "[ " ;
+  Format.pp_print_list
+    ~pp_sep:(fun fmt () -> Format.pp_print_string fmt " ")
+    pp_jsonm_lexeme
+    fmt
+    jls ;
+  Format.pp_print_string fmt " ]"
+
+let test_testable_jsonm_lexeme_seq (testable : testable) =
+  let module T = (val testable) in
+  let direct_seq = Json_encoding.construct_seq T.ding T.v in
+  let ezjsonm = Json_encoding.construct T.ding T.v in
+  let indirect_seq = Json_encoding.jsonm_lexeme_seq_of_ezjson ezjsonm in
+  Crowbar.check_eq
+    ~pp:pp_jsonm_lexeme_list
+    (List.of_seq direct_seq)
+    (List.of_seq indirect_seq)
+
+let test_testable_schema_jsonm_lexeme_seq (testable : testable) =
+  let schema = map_schema testable in
+  let module T = (val schema) in
+  let direct_seq = Json_encoding.construct_seq T.ding T.v in
+  let ezjsonm = Json_encoding.construct T.ding T.v in
+  let indirect_seq = Json_encoding.jsonm_lexeme_seq_of_ezjson ezjsonm in
+  Crowbar.check_eq
+    ~pp:pp_jsonm_lexeme_list
+    (List.of_seq direct_seq)
+    (List.of_seq indirect_seq)
+
 let () =
   (* roundtrip tests: constructions and destructions are inverses of each other *)
   Crowbar.add_test ~name:"ezjsonm roundtrips" [gen] test_testable_ezjsonm ;
   Crowbar.add_test ~name:"yojson roundtrips" [gen] test_testable_yojson ;
+  (* sequence construction test: direct sequence construction and construction
+     via ezjsonm yield the same result *)
+  Crowbar.add_test
+    ~name:"->seq ~ ->ezjson->seq"
+    [gen]
+    test_testable_jsonm_lexeme_seq ;
+  Crowbar.add_test
+    ~name:"schema->seq ~ schema->ezjson->seq"
+    [gen]
+    test_testable_schema_jsonm_lexeme_seq ;
   ()
