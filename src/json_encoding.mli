@@ -205,10 +205,13 @@ val opt :
   't encoding ->
   't option field
 
-(** An optional field of a given type, ommited when equal to a default value. *)
+(** An optional field of a given type.
+    The field is omitted when equal to the default value except when [construct]
+    is [true]. *)
 val dft :
   ?title:string ->
   ?description:string ->
+  ?construct:bool ->
   string ->
   't encoding ->
   't ->

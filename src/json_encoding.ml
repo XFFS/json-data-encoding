@@ -136,6 +136,7 @@ and _ field =
       title : string option;
       description : string option;
       default : 'a;
+      construct_default : bool;
     }
       -> 'a field
 
@@ -214,9 +215,9 @@ struct
       | Obj (Req {name = n; encoding = t}) ->
           let w v = construct t v in
           fun v -> Repr.repr (`O [(n, w v)])
-      | Obj (Dft {name = n; encoding = t; default = d}) ->
+      | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
           let w v = construct t v in
-          fun v -> Repr.repr (`O (if v <> d then [(n, w v)] else []))
+          fun v -> Repr.repr (`O (if construct_default || v <> d then [(n, w v)] else []))
       | Obj (Opt {name = n; encoding = t}) -> (
           let w v = construct t v in
           function
@@ -764,8 +765,16 @@ let req ?title ?description n t =
 let opt ?title ?description n t =
   Opt {name = n; encoding = t; title; description}
 
-let dft ?title ?description n t d =
-  Dft {name = n; encoding = t; title; description; default = d}
+let dft ?title ?description ?(construct = false) n t d =
+  Dft
+    {
+      name = n;
+      encoding = t;
+      title;
+      description;
+      default = d;
+      construct_default = construct;
+    }
 
 let mu name ?title ?description self =
   let mem = ref None in
@@ -1524,8 +1533,8 @@ module JsonmLexemeSeq = struct
         type t. t encoding -> t -> jsonm_lexeme Seq.t = function
       | Obj (Req {name = n; encoding = t}) ->
           fun v -> construct_named n t v
-      | Obj (Dft {name = n; encoding = t; default = d}) ->
-          fun v -> if v <> d then construct_named n t v else Seq.empty
+      | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
+          fun v -> if construct_default || v <> d then construct_named n t v else Seq.empty
       | Obj (Opt {name = n; encoding = t}) -> (
           function None -> Seq.empty | Some v -> construct_named n t v )
       | Obj _ ->
