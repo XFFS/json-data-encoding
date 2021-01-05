@@ -49,6 +49,7 @@
 type 'a encoding
 
 (** {2 Constructors and destructors for Json_repr.ezjsonm} *) (***************)
+
 (** see {!Json_repr.ezjsonm} *)
 
 (** Builds a json value from an OCaml value and an encoding.
@@ -64,7 +65,9 @@ val construct : 't encoding -> 't -> Json_repr.ezjsonm
     format. See functor {!Make} for using another representation. *)
 val destruct : 't encoding -> Json_repr.ezjsonm -> 't
 
-(** {2 JSON type combinators for simple immediates} *) (***********************)
+(** {2 JSON type combinators for simple immediates} *)
+
+(***********************)
 
 (** An encoding of an OCaml unit by any (ignored) JSON. *)
 val unit : unit encoding
@@ -113,7 +116,7 @@ val int53 : int64 encoding
     be within the bounds, otherwise an [Invalid_argument] will be
     raised. The string parameter is a name used to tweak the error
     messages. *)
-val ranged_int : minimum: int -> maximum: int -> string -> int encoding
+val ranged_int : minimum:int -> maximum:int -> string -> int encoding
 
 (** An encoding of an OCaml int32 by a JSON number restricted to a specific range.
 
@@ -124,7 +127,7 @@ val ranged_int : minimum: int -> maximum: int -> string -> int encoding
     be within the bounds, otherwise an [Invalid_argument] will be
     raised. The string parameter is a name used to tweak the error
     messages. *)
-val ranged_int32 : minimum: int32 -> maximum: int32 -> string -> int32 encoding
+val ranged_int32 : minimum:int32 -> maximum:int32 -> string -> int32 encoding
 
 (** An encoding of an OCaml int64 by a JSON number restricted to a specific range.
 
@@ -135,7 +138,7 @@ val ranged_int32 : minimum: int32 -> maximum: int32 -> string -> int32 encoding
     be within the bounds, otherwise an [Invalid_argument] will be
     raised. The string parameter is a name used to tweak the error
     messages. *)
-val ranged_int53 : minimum: int64 -> maximum: int64 -> string -> int64 encoding
+val ranged_int53 : minimum:int64 -> maximum:int64 -> string -> int64 encoding
 
 (** An encoding of an OCaml boolean by a JSON one. *)
 val bool : bool encoding
@@ -164,73 +167,118 @@ val ranged_float : minimum:float -> maximum:float -> string -> float encoding
     of [null]. *)
 val option : 'a encoding -> 'a option encoding
 
-(** {2 JSON type combinators for objects} *) (*********************************)
+(** {2 JSON type combinators for objects} *)
+
+(*********************************)
 
 (** A first class handle to a JSON field. *)
 type 'a field
 
 (** A required field of a given its type. *)
-val req : ?title:string -> ?description:string -> string -> 't encoding -> 't field
+val req :
+  ?title:string -> ?description:string -> string -> 't encoding -> 't field
 
 (** An optional field of a given type, using an OCaml [option]. *)
-val opt : ?title:string -> ?description:string -> string -> 't encoding -> 't option field
+val opt :
+  ?title:string ->
+  ?description:string ->
+  string ->
+  't encoding ->
+  't option field
 
 (** An optional field of a given type, ommited when equal to a default value. *)
-val dft : ?title:string -> ?description:string -> string -> 't encoding -> 't -> 't field
+val dft :
+  ?title:string ->
+  ?description:string ->
+  string ->
+  't encoding ->
+  't ->
+  't field
 
 (** An encoding of an OCaml value by a singleton object. *)
-val obj1 :
-  'f1 field ->
-  'f1 encoding
+val obj1 : 'f1 field -> 'f1 encoding
 
 (** An encoding of an OCaml pair by a JSON object with two fields. *)
-val obj2 :
-  'f1 field -> 'f2 field ->
-  ('f1 * 'f2) encoding
+val obj2 : 'f1 field -> 'f2 field -> ('f1 * 'f2) encoding
 
 (** An encoding of an OCaml triple by a JSON object with three fields. *)
-val obj3 :
-  'f1 field -> 'f2 field -> 'f3 field ->
-  ('f1 * 'f2 * 'f3) encoding
+val obj3 : 'f1 field -> 'f2 field -> 'f3 field -> ('f1 * 'f2 * 'f3) encoding
 
 (** An encoding of an OCaml quadruple by a JSON object with four fields. *)
 val obj4 :
-  'f1 field -> 'f2 field -> 'f3 field -> 'f4 field ->
+  'f1 field ->
+  'f2 field ->
+  'f3 field ->
+  'f4 field ->
   ('f1 * 'f2 * 'f3 * 'f4) encoding
 
 (** An encoding of an OCaml quintuple by a JSON object with five fields. *)
 val obj5 :
-  'f1 field -> 'f2 field -> 'f3 field -> 'f4 field -> 'f5 field ->
+  'f1 field ->
+  'f2 field ->
+  'f3 field ->
+  'f4 field ->
+  'f5 field ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5) encoding
 
 (** An encoding of an OCaml sextuple by a JSON object with six fields. *)
 val obj6 :
-  'f1 field -> 'f2 field -> 'f3 field -> 'f4 field -> 'f5 field ->
+  'f1 field ->
+  'f2 field ->
+  'f3 field ->
+  'f4 field ->
+  'f5 field ->
   'f6 field ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6) encoding
 
 (** An encoding of an OCaml septuple by a JSON object with seven fields. *)
 val obj7 :
-  'f1 field -> 'f2 field -> 'f3 field -> 'f4 field -> 'f5 field ->
-  'f6 field -> 'f7 field ->
+  'f1 field ->
+  'f2 field ->
+  'f3 field ->
+  'f4 field ->
+  'f5 field ->
+  'f6 field ->
+  'f7 field ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6 * 'f7) encoding
 
 (** An encoding of an OCaml octuple by a JSON object with eight fields. *)
 val obj8 :
-  'f1 field -> 'f2 field -> 'f3 field -> 'f4 field -> 'f5 field ->
-  'f6 field -> 'f7 field -> 'f8 field ->
+  'f1 field ->
+  'f2 field ->
+  'f3 field ->
+  'f4 field ->
+  'f5 field ->
+  'f6 field ->
+  'f7 field ->
+  'f8 field ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6 * 'f7 * 'f8) encoding
 
 (** An encoding of an OCaml nonuple by a JSON object with nine fields. *)
 val obj9 :
-  'f1 field -> 'f2 field -> 'f3 field -> 'f4 field -> 'f5 field ->
-  'f6 field -> 'f7 field -> 'f8 field -> 'f9 field ->
+  'f1 field ->
+  'f2 field ->
+  'f3 field ->
+  'f4 field ->
+  'f5 field ->
+  'f6 field ->
+  'f7 field ->
+  'f8 field ->
+  'f9 field ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6 * 'f7 * 'f8 * 'f9) encoding
 
 (** An encoding of an OCaml decuple by a JSON object with ten fields. *)
 val obj10 :
-  'f1 field -> 'f2 field -> 'f3 field -> 'f4 field -> 'f5 field ->
-  'f6 field -> 'f7 field -> 'f8 field -> 'f9 field -> 'f10 field ->
+  'f1 field ->
+  'f2 field ->
+  'f3 field ->
+  'f4 field ->
+  'f5 field ->
+  'f6 field ->
+  'f7 field ->
+  'f8 field ->
+  'f9 field ->
+  'f10 field ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6 * 'f7 * 'f8 * 'f9 * 'f10) encoding
 
 (** Merge two object [encoding]s. For describing heavyweight objects with
@@ -238,79 +286,106 @@ val obj10 :
     object is flat. Both arguments must be object encodings,
     otherwise a future {!construct}, {!destruct} or {!schema} will fail
     with [Invalid_argument]. *)
-val merge_objs :
-  'o1 encoding -> 'o2 encoding -> ('o1 * 'o2) encoding
+val merge_objs : 'o1 encoding -> 'o2 encoding -> ('o1 * 'o2) encoding
 
-(** {2 JSON type combinators for arrays} *) (**********************************)
+(** {2 JSON type combinators for arrays} *)
+
+(**********************************)
 
 (** An encoding of an OCaml array by a JSON one. *)
-val array :
-  'a encoding ->
-  'a array encoding
+val array : 'a encoding -> 'a array encoding
 
 (** An encoding of an OCaml list by a JSON one. *)
-val list :
-  'a encoding ->
-  'a list encoding
+val list : 'a encoding -> 'a list encoding
 
 (** An encoding of an OCaml associative list by a JSON object. *)
-val assoc :
-  'a encoding ->
-  (string * 'a) list encoding
+val assoc : 'a encoding -> (string * 'a) list encoding
 
 (** An encoding of an OCaml value by a singleton array. *)
-val tup1 :
-  'f1 encoding ->
-  'f1 encoding
+val tup1 : 'f1 encoding -> 'f1 encoding
 
 (** An encoding of an OCaml pair by a JSON array with two cells. *)
-val tup2 :
-  'f1 encoding -> 'f2 encoding ->
-  ('f1 * 'f2) encoding
+val tup2 : 'f1 encoding -> 'f2 encoding -> ('f1 * 'f2) encoding
 
 (** An encoding of an OCaml triple by a JSON array with three cells. *)
 val tup3 :
-  'f1 encoding -> 'f2 encoding -> 'f3 encoding ->
-  ('f1 * 'f2 * 'f3) encoding
+  'f1 encoding -> 'f2 encoding -> 'f3 encoding -> ('f1 * 'f2 * 'f3) encoding
 
 (** An encoding of an OCaml quadruple by a JSON array with four cells. *)
 val tup4 :
-  'f1 encoding -> 'f2 encoding -> 'f3 encoding -> 'f4 encoding ->
+  'f1 encoding ->
+  'f2 encoding ->
+  'f3 encoding ->
+  'f4 encoding ->
   ('f1 * 'f2 * 'f3 * 'f4) encoding
 
 (** An encoding of an OCaml quintuple by a JSON array with five cells. *)
 val tup5 :
-  'f1 encoding -> 'f2 encoding -> 'f3 encoding -> 'f4 encoding -> 'f5 encoding ->
+  'f1 encoding ->
+  'f2 encoding ->
+  'f3 encoding ->
+  'f4 encoding ->
+  'f5 encoding ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5) encoding
 
 (** An encoding of an OCaml sextuple by a JSON array with six cells. *)
 val tup6 :
-  'f1 encoding -> 'f2 encoding -> 'f3 encoding -> 'f4 encoding -> 'f5 encoding ->
+  'f1 encoding ->
+  'f2 encoding ->
+  'f3 encoding ->
+  'f4 encoding ->
+  'f5 encoding ->
   'f6 encoding ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6) encoding
 
 (** An encoding of an OCaml septuple by a JSON array with seven cells. *)
 val tup7 :
-  'f1 encoding -> 'f2 encoding -> 'f3 encoding -> 'f4 encoding -> 'f5 encoding ->
-  'f6 encoding -> 'f7 encoding ->
+  'f1 encoding ->
+  'f2 encoding ->
+  'f3 encoding ->
+  'f4 encoding ->
+  'f5 encoding ->
+  'f6 encoding ->
+  'f7 encoding ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6 * 'f7) encoding
 
 (** An encoding of an OCaml octuple by a JSON array with eight cells. *)
 val tup8 :
-  'f1 encoding -> 'f2 encoding -> 'f3 encoding -> 'f4 encoding -> 'f5 encoding ->
-  'f6 encoding -> 'f7 encoding -> 'f8 encoding ->
+  'f1 encoding ->
+  'f2 encoding ->
+  'f3 encoding ->
+  'f4 encoding ->
+  'f5 encoding ->
+  'f6 encoding ->
+  'f7 encoding ->
+  'f8 encoding ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6 * 'f7 * 'f8) encoding
 
 (** An encoding of an OCaml nonuple by a JSON array with nine cells. *)
 val tup9 :
-  'f1 encoding -> 'f2 encoding -> 'f3 encoding -> 'f4 encoding -> 'f5 encoding ->
-  'f6 encoding -> 'f7 encoding -> 'f8 encoding -> 'f9 encoding ->
+  'f1 encoding ->
+  'f2 encoding ->
+  'f3 encoding ->
+  'f4 encoding ->
+  'f5 encoding ->
+  'f6 encoding ->
+  'f7 encoding ->
+  'f8 encoding ->
+  'f9 encoding ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6 * 'f7 * 'f8 * 'f9) encoding
 
 (** An encoding of an OCaml decuple by a JSON array with ten cells. *)
 val tup10 :
-  'f1 encoding -> 'f2 encoding -> 'f3 encoding -> 'f4 encoding -> 'f5 encoding ->
-  'f6 encoding -> 'f7 encoding -> 'f8 encoding -> 'f9 encoding -> 'f10 encoding ->
+  'f1 encoding ->
+  'f2 encoding ->
+  'f3 encoding ->
+  'f4 encoding ->
+  'f5 encoding ->
+  'f6 encoding ->
+  'f7 encoding ->
+  'f8 encoding ->
+  'f9 encoding ->
+  'f10 encoding ->
   ('f1 * 'f2 * 'f3 * 'f4 * 'f5 * 'f6 * 'f7 * 'f8 * 'f9 * 'f10) encoding
 
 (** Merge two tuple [encoding]s. For describing heavyweight arrays with a
@@ -319,12 +394,11 @@ val tup10 :
     ones of the second. Both arguments must be tuple encodings,
     otherwise a future {!construct}, {!destruct} or {!schema} will fail
     with [Invalid_argument]. *)
-val merge_tups :
-  'a1 encoding ->
-  'a2 encoding ->
-  ('a1 * 'a2) encoding
+val merge_tups : 'a1 encoding -> 'a2 encoding -> ('a1 * 'a2) encoding
 
-(** {2 JSON type combinators for unions} *) (**********************************)
+(** {2 JSON type combinators for unions} *)
+
+(**********************************)
 
 (** A case for describing union types using {!union} ans {!case}. *)
 type 't case
@@ -336,12 +410,17 @@ type 't case
 val case :
   ?title:string ->
   ?description:string ->
-  'a encoding -> ('b -> 'a option) -> ('a -> 'b) -> 'b case
+  'a encoding ->
+  ('b -> 'a option) ->
+  ('a -> 'b) ->
+  'b case
 
 (** A utility to build destructors for custom encoded sum types. *)
 val union : 't case list -> 't encoding
 
-(** {2 JSON generic type combinators} *) (*************************************)
+(** {2 JSON generic type combinators} *)
+
+(*************************************)
 
 (** A simple custom encoding using the {!Json_repr.ezjsonm}
     intermediate representation for the conversion functions. The
@@ -353,7 +432,7 @@ val union : 't case list -> 't encoding
 val custom :
   ('t -> Json_repr.ezjsonm) ->
   (Json_repr.ezjsonm -> 't) ->
-  schema: Json_schema.schema ->
+  schema:Json_schema.schema ->
   't encoding
 
 (** An encoding adapter, with an optional handwritten schema.
@@ -362,7 +441,7 @@ val custom :
 val conv :
   ('a -> 'b) ->
   ('b -> 'a) ->
-  ?schema: Json_schema.schema ->
+  ?schema:Json_schema.schema ->
   'b encoding ->
   'a encoding
 
@@ -387,9 +466,10 @@ val conv :
                (fun (hd, tl) -> hd :: tl) ]) ]} *)
 val mu :
   string ->
-  ?title: string ->
-  ?description: string ->
-  ('a encoding -> 'a encoding) -> 'a encoding
+  ?title:string ->
+  ?description:string ->
+  ('a encoding -> 'a encoding) ->
+  'a encoding
 
 (** A raw JSON value in ezjsonm representation. *)
 val any_ezjson_value : Json_repr.ezjsonm encoding
@@ -400,7 +480,9 @@ val any_document : Json_repr.any encoding
 (** The encoding of a JSON schema, linked to its OCaml definiton. *)
 val any_schema : Json_schema.schema encoding
 
-(** {2 Exporting [encoding]s as JSON schemas} *) (********************************)
+(** {2 Exporting [encoding]s as JSON schemas} *)
+
+(********************************)
 
 (** Describe an encoding in JSON schema format.
     May raise {!Bad_schema}. *)
@@ -410,12 +492,11 @@ val schema : ?definitions_path:string -> 't encoding -> Json_schema.schema
     schema.  The first parameter is a path, that must be unique and
     respect the format of {!Json_schema.add_definition}. *)
 val def :
-  string ->
-  ?title:string ->
-  ?description:string ->
-  't encoding -> 't encoding
+  string -> ?title:string -> ?description:string -> 't encoding -> 't encoding
 
-(** {2 Errors} *) (************************************************************)
+(** {2 Errors} *)
+
+(************************************************************)
 
 (** Exception raised by destructors, with the location in the original
     JSON structure and the specific error. *)
@@ -440,15 +521,18 @@ exception Unexpected_field of string
 exception Bad_schema of exn
 
 (** Produces a human readable version of an error. *)
-val print_error
-  : ?print_unknown: (Format.formatter -> exn -> unit) ->
-  Format.formatter -> exn -> unit
+val print_error :
+  ?print_unknown:(Format.formatter -> exn -> unit) ->
+  Format.formatter ->
+  exn ->
+  unit
 
-(** {2 Advanced interface for using a custom JSON representation} *) (**********)
+(** {2 Advanced interface for using a custom JSON representation} *)
+
+(**********)
 
 module type S = sig
-
-   type repr_value
+  type repr_value
 
   (** Same as {!construct} for a custom JSON representation. *)
   val construct : 't encoding -> 't -> repr_value
@@ -458,10 +542,10 @@ module type S = sig
 
   (** Same as {!custom} for a custom JSON representation. *)
   val custom :
-    ('t -> repr_value) -> (repr_value -> 't) ->
-    schema: Json_schema.schema ->
+    ('t -> repr_value) ->
+    (repr_value -> 't) ->
+    schema:Json_schema.schema ->
     't encoding
-
 end
 
 module Make (Repr : Json_repr.Repr) : S with type repr_value = Repr.value
@@ -490,15 +574,14 @@ module Make (Repr : Json_repr.Repr) : S with type repr_value = Repr.value
            (* examine the value and produce a JSON using [Repr_f.repr] *)
            Repr_f.repr `Null in
        { read ; write } ]} *)
-type 't repr_agnostic_custom =
-  { write : 'rt. (module Json_repr.Repr with type value = 'rt) -> 't -> 'rt ;
-    read : 'rf. (module Json_repr.Repr with type value = 'rf) -> 'rf -> 't }
+type 't repr_agnostic_custom = {
+  write : 'rt. (module Json_repr.Repr with type value = 'rt) -> 't -> 'rt;
+  read : 'rf. (module Json_repr.Repr with type value = 'rf) -> 'rf -> 't;
+}
 
 (** A custom encoding, using custom encoders and a schema. *)
 val repr_agnostic_custom :
-  't repr_agnostic_custom ->
-  schema: Json_schema.schema ->
-  't encoding
+  't repr_agnostic_custom -> schema:Json_schema.schema -> 't encoding
 
 (** A raw JSON value in its original representation. *)
 val any_value : Json_repr.any encoding

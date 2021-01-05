@@ -141,9 +141,11 @@ let map_int32 (i : int32) : testable =
   end )
 
 let lower_bound_53 = Int64.(neg @@ shift_left 1L 53)
+
 let upper_bound_53 = Int64.shift_left 1L 53
+
 let map_int53 (i : int64) : testable =
-   let clipped = max lower_bound_53 (min i upper_bound_53) in
+  let clipped = max lower_bound_53 (min i upper_bound_53) in
   ( module struct
     type t = int64
 
@@ -381,8 +383,7 @@ let map_tup3 (t1 : testable) (t2 : testable) (t3 : testable) : testable =
   ( module struct
     type t = T1.t * T2.t * T3.t
 
-    let ding =
-      Json_encoding.tup3 T1.ding T2.ding T3.ding
+    let ding = Json_encoding.tup3 T1.ding T2.ding T3.ding
 
     let v = (T1.v, T2.v, T3.v)
 
@@ -399,12 +400,7 @@ let map_tup4 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable) :
   ( module struct
     type t = T1.t * T2.t * T3.t * T4.t
 
-    let ding =
-      Json_encoding.tup4
-        T1.ding
-        T2.ding
-        T3.ding
-        T4.ding
+    let ding = Json_encoding.tup4 T1.ding T2.ding T3.ding T4.ding
 
     let v = (T1.v, T2.v, T3.v, T4.v)
 
@@ -432,13 +428,7 @@ let map_tup5 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
   ( module struct
     type t = T1.t * T2.t * T3.t * T4.t * T5.t
 
-    let ding =
-      Json_encoding.tup5
-        T1.ding
-        T2.ding
-        T3.ding
-        T4.ding
-        T5.ding
+    let ding = Json_encoding.tup5 T1.ding T2.ding T3.ding T4.ding T5.ding
 
     let v = (T1.v, T2.v, T3.v, T4.v, T5.v)
 
@@ -470,13 +460,7 @@ let map_tup6 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
     type t = T1.t * T2.t * T3.t * T4.t * T5.t * T6.t
 
     let ding =
-      Json_encoding.tup6
-        T1.ding
-        T2.ding
-        T3.ding
-        T4.ding
-        T5.ding
-        T6.ding
+      Json_encoding.tup6 T1.ding T2.ding T3.ding T4.ding T5.ding T6.ding
 
     let v = (T1.v, T2.v, T3.v, T4.v, T5.v, T6.v)
 
@@ -708,8 +692,7 @@ let map_merge_tups (t1 : testable) (t2 : testable) : testable =
   ( module struct
     type t = T1.t * T2.t
 
-    let ding =
-      Json_encoding.merge_tups T1.ding T2.ding
+    let ding = Json_encoding.merge_tups T1.ding T2.ding
 
     let v = (T1.v, T2.v)
 
@@ -781,25 +764,26 @@ let gen =
            map [g; list g] map_variable_list;
            map [g; list g] (fun t ts -> map_variable_array t (Array.of_list ts));
         *)
-
+            
           ])
   in
   with_printer testable_printer g
 
-module Ezjsonm_construct = Json_encoding.Make(Json_repr.Ezjsonm)
-module Yojson_construct = Json_encoding.Make(Json_repr.Yojson)
+module Ezjsonm_construct = Json_encoding.Make (Json_repr.Ezjsonm)
+module Yojson_construct = Json_encoding.Make (Json_repr.Yojson)
 
 (* Basic functions for executing tests on a given input *)
-let roundtrip (module M: Json_encoding.S) name pp ding v =
+let roundtrip (module M : Json_encoding.S) name pp ding v =
   let json =
     try M.construct ding v
     with Invalid_argument m ->
-      Crowbar.fail (Format.asprintf "Cannot construct (%s): %a (%s)" name pp v m)
+      Crowbar.fail
+        (Format.asprintf "Cannot construct (%s): %a (%s)" name pp v m)
   in
   let vv =
     try M.destruct ding json
     with Invalid_argument s ->
-       Format.kasprintf Crowbar.fail "Cannot destruct (%s): %s" name s
+      Format.kasprintf Crowbar.fail "Cannot destruct (%s): %s" name s
   in
   Crowbar.check_eq ~pp v vv
 

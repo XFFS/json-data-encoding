@@ -51,7 +51,6 @@ module Json_encoding : Json_encoding.S with type repr_value = bson
 (** Pre-instanciated {!Json_encoding.Make}. *)
 module Json_query : module type of Json_query.Make (Repr)
 
-
 (** Serializes the intermediate BSON representation to actual BSON.
 
     By default, [conforming] is [false], so that any value can be serialized,
@@ -65,9 +64,7 @@ module Json_query : module type of Json_query.Make (Repr)
 
     Will raise [Invalid_argument "Json_repr.bson_to_bytes"] when
     [conforming] and trying to serialize a toplevel array or immediate. *)
-val bson_to_bytes :
-  ?cache: bool -> ?conforming: bool ->
-  bson -> bytes
+val bson_to_bytes : ?cache:bool -> ?conforming:bool -> bson -> bytes
 
 (** Bson decoding error, with a message, the BSON and an offset. *)
 exception Bson_decoding_error of string * bytes * int
@@ -96,5 +93,9 @@ exception Bson_decoding_error of string * bytes * int
 
     May raise {!Bson_decoding_error}. *)
 val bytes_to_bson :
-  ?laziness: bool -> ?cache: bool -> ?conforming: bool ->
-  copy: bool -> bytes -> bson
+  ?laziness:bool ->
+  ?cache:bool ->
+  ?conforming:bool ->
+  copy:bool ->
+  bytes ->
+  bson
