@@ -1,3 +1,3 @@
 (lang dune 1.7)
-(name ocplib-json-typed)
-(using fmt 1.2)
+(name json-data-encoding)
+(using fmt 1.1)
