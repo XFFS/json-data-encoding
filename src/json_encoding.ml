@@ -581,29 +581,43 @@ let schema ?definitions_path encoding =
     match l1 with
     | [] ->
         []
-    | (l1, b1) :: es ->
-        List.map (fun (l2, b2) -> (l1 @ l2, b1 || b2)) l2 @ prod es l2
+    | (l1, b1, e1) :: es ->
+        List.map
+          (fun (l2, b2, e2) ->
+            ( l1 @ l2,
+              b1 || b2,
+              match (e1, e2) with
+              | (Some e, _) | (_, Some e) ->
+                  Some e
+              | _ ->
+                  None ))
+          l2
+        @ prod es l2
   in
   let rec object_schema :
       type t.
       t encoding ->
-      ((string * element * bool * Json_repr.any option) list * bool) list =
-    function
+      ( (string * element * bool * Json_repr.any option) list
+      * bool
+      * element option )
+      list = function
     | Conv (_, _, o, None) ->
         object_schema o
     | Empty ->
-        [([], false)]
+        [([], false, None)]
     | Ignore ->
-        [([], true)]
+        [([], true, None)]
     | Obj (Req {name = n; encoding = t; title; description}) ->
         [
           ( [(n, patch_description ?title ?description (schema t), true, None)],
-            false );
+            false,
+            None );
         ]
     | Obj (Opt {name = n; encoding = t; title; description}) ->
         [
           ( [(n, patch_description ?title ?description (schema t), false, None)],
-            false );
+            false,
+            None );
         ]
     | Obj (Dft {name = n; encoding = t; title; description; default = d}) ->
         let d =
@@ -618,7 +632,8 @@ let schema ?definitions_path encoding =
                 false,
                 Some d );
             ],
-            false );
+            false,
+            None );
         ]
     | Objs (o1, o2) ->
         prod (object_schema o1) (object_schema o2)
@@ -626,11 +641,24 @@ let schema ?definitions_path encoding =
         invalid_arg "Json_encoding.schema: empty union in object"
     | Union cases ->
         List.flatten
-          (List.map (fun (Case {encoding = o}) -> object_schema o) cases)
+          (List.map
+             (fun (Case {encoding = o; title; description}) ->
+               let elt = patch_description ?title ?description (schema o) in
+               match object_schema o with
+               | [(l, b, _)] ->
+                   [(l, b, Some elt)]
+               | l ->
+                   l)
+             cases)
     | Mu {self} as enc ->
         object_schema (self enc)
-    | Describe {encoding = t} ->
-        object_schema t
+    | Describe {title; description; encoding} -> (
+        let elt = patch_description ?title ?description (schema encoding) in
+        match object_schema encoding with
+        | [(l, b, _)] ->
+            [(l, b, Some elt)]
+        | l ->
+            l )
     | Conv (_, _, _, Some _) (* FIXME: We could do better *) | _ ->
         invalid_arg "Json_encoding.schema: consequence of bad merge_objs"
   and array_schema : type t. t encoding -> element list = function
@@ -719,41 +747,95 @@ let schema ?definitions_path encoding =
         element (Monomorphic_array (schema t, array_specs))
     | Objs _ as o -> (
       match object_schema o with
-      | [(properties, ext)] ->
+      | [(properties, ext, elt)] -> (
           let additional_properties =
             if ext then Some (element Any) else None
           in
-          element
-            (Object {object_specs with properties; additional_properties})
+          match elt with
+          | None ->
+              element
+                (Object {object_specs with properties; additional_properties})
+          | Some elt ->
+              {
+                (element
+                   (Object
+                      {object_specs with properties; additional_properties}))
+                with
+                title = elt.title;
+                description = elt.description;
+              } )
       | more ->
           let elements =
             List.map
-              (fun (properties, ext) ->
+              (fun (properties, ext, elt) ->
                 let additional_properties =
                   if ext then Some (element Any) else None
                 in
-                element
-                  (Object {object_specs with properties; additional_properties}))
+                match elt with
+                | None ->
+                    element
+                      (Object
+                         {object_specs with properties; additional_properties})
+                | Some elt ->
+                    {
+                      (element
+                         (Object
+                            {
+                              object_specs with
+                              properties;
+                              additional_properties;
+                            }))
+                      with
+                      title = elt.title;
+                      description = elt.description;
+                    })
               more
           in
           element (Combine (One_of, elements)) )
     | Obj _ as o -> (
       match object_schema o with
-      | [(properties, ext)] ->
+      | [(properties, ext, elt)] -> (
           let additional_properties =
             if ext then Some (element Any) else None
           in
-          element
-            (Object {object_specs with properties; additional_properties})
+          match elt with
+          | None ->
+              element
+                (Object {object_specs with properties; additional_properties})
+          | Some elt ->
+              {
+                (element
+                   (Object
+                      {object_specs with properties; additional_properties}))
+                with
+                title = elt.title;
+                description = elt.description;
+              } )
       | more ->
           let elements =
             List.map
-              (fun (properties, ext) ->
+              (fun (properties, ext, elt) ->
                 let additional_properties =
                   if ext then Some (element Any) else None
                 in
-                element
-                  (Object {object_specs with properties; additional_properties}))
+                match elt with
+                | None ->
+                    element
+                      (Object
+                         {object_specs with properties; additional_properties})
+                | Some elt ->
+                    {
+                      (element
+                         (Object
+                            {
+                              object_specs with
+                              properties;
+                              additional_properties;
+                            }))
+                      with
+                      title = elt.title;
+                      description = elt.description;
+                    })
               more
           in
           element (Combine (One_of, elements)) )
