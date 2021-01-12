@@ -455,15 +455,26 @@ val conv :
     Here is an example to turn a standard OCaml list into either
     ["nil"] for [[]] or [{"hd":hd,"tl":tl}] for [hd::tl].
 
-    {[ let reclist itemencoding =
-         mu "list" @@ fun self ->
-         union
-           [ case (string_enum [ "nil", () ])
-               (function [] -> Some () | _ :: _ -> None)
-               (fun () -> []) ;
-             case (obj2 (req "hd" itemencoding) (req "tl" self))
-               (function hd :: tl -> Some (hd, tl) | [] -> None)
-               (fun (hd, tl) -> hd :: tl) ]) ]} *)
+{[
+let reclist item_encoding =
+   mu "list" @@ fun self ->
+   union [
+      case (string_enum [ "nil", () ])
+         (function [] -> Some () | _ :: _ -> None)
+         (fun () -> []) ;
+      case (obj2 (req "hd" itemencoding) (req "tl" self))
+         (function hd :: tl -> Some (hd, tl) | [] -> None)
+         (fun (hd, tl) -> hd :: tl)
+   ]
+]}
+
+    Notice that the function passed to [mu] must be pure. Otherwise,
+    the behavior is unspecified.
+
+    A stateful recursive encoding can still be put under a [delayed]
+    combinator to make sure that a new encoding is generated each
+    time it is used. Caching the encoding generation when the state
+    has not changed is then the responsability of the client. *)
 val mu :
   string ->
   ?title:string ->

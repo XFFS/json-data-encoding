@@ -766,7 +766,18 @@ let opt ?title ?description n t =
 let dft ?title ?description n t d =
   Dft {name = n; encoding = t; title; description; default = d}
 
-let mu name ?title ?description self = Mu {id = name; title; description; self}
+let mu name ?title ?description self =
+  let mem = ref None in
+  let self e =
+    match !mem with
+    | Some (e_param, e_result) when e_param == e ->
+        e_result
+    | _ ->
+        let e_result = self e in
+        mem := Some (e, e_result) ;
+        e_result
+  in
+  Mu {id = name; title; description; self}
 
 let null = Null
 
