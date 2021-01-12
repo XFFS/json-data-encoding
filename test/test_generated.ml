@@ -69,10 +69,12 @@ let short_mbytes1 = Crowbar.map [short_string1] Bytes.of_string
 
 (* We need to hide the type parameter of `Encoding.t` to avoid the generator
  * combinator `choose` from complaining about different types. We use first
- * level modules (for now) to encode existentials.
+ * class modules (for now) to encode existentials.
  *
  * An alternative is used in https://gitlab.com/gasche/fuzz-data-encoding *)
 
+(* The type for first-class modules used to encode existentials as expalined
+   above. *)
 module type TESTABLE = sig
   type t
 
@@ -138,6 +140,30 @@ let map_int32 (i : int32) : testable =
     let ding = Json_encoding.int32
 
     let pp = Crowbar.pp_int32
+  end )
+
+let map_int32_conv (i : int32) : testable =
+  ( module struct
+    type t = int32
+
+    let v = i
+
+    let ding = Json_encoding.(conv Int32.succ Int32.pred int32)
+
+    let pp = Crowbar.pp_int32
+  end )
+
+let map_int32_list (i : int32) : testable =
+  ( module struct
+    type t = int32 list
+
+    let v =
+      let open Int32 in
+      [i; add i 1l; add i 2l; add i 4l; add i 8l; add i 16l]
+
+    let ding = Json_encoding.(list int32)
+
+    let pp = Crowbar.(pp_list pp_int32)
   end )
 
 let lower_bound_53 = Int64.(neg @@ shift_left 1L 53)
@@ -250,6 +276,151 @@ let map_float f : testable =
 
 (* And now combinators *)
 
+(* To avoid name collisions we have this generator. *)
+let new_name =
+  let r = ref 0 in
+  fun () ->
+    incr r ;
+    "n" ^ string_of_int !r
+
+let enum (n : int) : testable =
+  assert (0 <= n) ;
+  assert (n < 3) ;
+  ( module struct
+    type t = Zilch | Yi | Dos
+
+    let v = if n = 0 then Zilch else if n = 1 then Yi else Dos
+
+    let ding =
+      Json_encoding.string_enum
+        [(new_name (), Zilch); (new_name (), Yi); (new_name (), Dos)]
+
+    let pp ppf = function
+      | Zilch ->
+          Crowbar.pp_string ppf "Zilch"
+      | Yi ->
+          Crowbar.pp_string ppf "Yi"
+      | Dos ->
+          Crowbar.pp_string ppf "Dos"
+  end )
+
+let map_def (t : testable) : testable =
+  let module T = (val t) in
+  let name = new_name () in
+  ( module struct
+    type t = T.t
+
+    let v = T.v
+
+    let ding = Json_encoding.def name T.ding
+
+    let pp = T.pp
+  end )
+
+let map_conv_id (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = T.t
+
+    let v = T.v
+
+    let ding = Json_encoding.conv Fun.id Fun.id T.ding
+
+    let pp = T.pp
+  end )
+
+let map_conv_obj (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = T.t
+
+    let v = T.v
+
+    let ding =
+      let open Json_encoding in
+      conv
+        (fun v -> (v, ()))
+        (fun (v, ()) -> v)
+        (obj2 (req (new_name ()) T.ding) (req (new_name ()) empty))
+
+    let pp = T.pp
+  end )
+
+let map_conv_singleton_union (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = T.t
+
+    let v = T.v
+
+    let ding =
+      let open Json_encoding in
+      union [case T.ding (fun x -> Some x) (fun x -> x)]
+
+    let pp = T.pp
+  end )
+
+let map_mu_dup_list (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = T.t list
+
+    let v = [T.v; T.v]
+
+    let ding =
+      let open Json_encoding in
+      mu (new_name ()) (fun mul ->
+          union
+            [
+              case
+                null
+                (function [] -> Some () | _ :: _ -> None)
+                (function () -> []);
+              case
+                (tup2 T.ding mul)
+                (function x :: xs -> Some (x, xs) | [] -> None)
+                (function (x, xs) -> x :: xs);
+            ])
+
+    let pp fmt = function
+      | [v; w] ->
+          Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
+      | _ ->
+          assert false
+  end )
+
+let map_singleton_list (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = T.t list
+
+    let v = [T.v]
+
+    let ding = Json_encoding.list T.ding
+
+    let pp fmt = function
+      | [v] ->
+          Format.fprintf fmt "[%a]" T.pp v
+      | _ ->
+          assert false
+  end )
+
+let map_dup_list (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = T.t list
+
+    let v = [T.v; T.v]
+
+    let ding = Json_encoding.list T.ding
+
+    let pp fmt = function
+      | [v; w] ->
+          Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
+      | _ ->
+          assert false
+  end )
+
 let map_some (t : testable) : testable =
   let module T = (val t) in
   ( module struct
@@ -351,6 +522,36 @@ let map_array (t : testable) (ts : testable array) : testable =
              ~pp_sep:(fun ppf () -> Format.fprintf ppf ";@ ")
              T.pp)
           (Array.to_list a)
+  end )
+
+let map_obj1 (t1 : testable) : testable =
+  let module T1 = (val t1) in
+  ( module struct
+    include T1
+
+    let name1 = new_name ()
+
+    let ding = Json_encoding.(obj1 (req name1 T1.ding))
+
+    let pp ppf v1 = Crowbar.pp ppf "@[<hv 1>(%s: %a)@]" name1 T1.pp v1
+  end )
+
+let map_obj2 (t1 : testable) (t2 : testable) : testable =
+  let module T1 = (val t1) in
+  let module T2 = (val t2) in
+  ( module struct
+    type t = T1.t * T2.t
+
+    let v = (T1.v, T2.v)
+
+    let name1 = new_name ()
+
+    let name2 = new_name ()
+
+    let ding = Json_encoding.(obj2 (req name1 T1.ding) (req name2 T2.ding))
+
+    let pp ppf (v1, v2) =
+      Crowbar.pp ppf "@[<hv 1>(%s: %a, %s: %a)@]" name1 T1.pp v1 name2 T2.pp v2
   end )
 
 let map_tup1 (t1 : testable) : testable =
@@ -699,6 +900,18 @@ let map_merge_tups (t1 : testable) (t2 : testable) : testable =
     let pp ppf (v1, v2) = Crowbar.pp ppf "@[<hv 1>(%a, %a)@]" T1.pp v1 T2.pp v2
   end )
 
+let map_schema (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = Json_schema.schema
+
+    let ding = Json_encoding.any_schema
+
+    let v = Json_encoding.schema T.ding
+
+    let pp ppf schema = Json_schema.pp ppf schema
+  end )
+
 let testable_printer : testable Crowbar.printer =
  fun ppf (t : testable) ->
   let module T = (val t) in
@@ -733,6 +946,8 @@ let gen =
             const unit;
             map [short_string] map_constant;
             map [int32] map_int32;
+            map [int32] map_int32_conv;
+            map [int32] map_int32_list;
             map [int64] map_int53;
             map [float; float; float] map_range_float;
             map [bool] map_bool;
@@ -755,16 +970,16 @@ let gen =
                 map_merge_tups (map_tup2 t1 t2) (map_tup1 t3));
             map [g; g; g] (fun t1 t2 t3 ->
                 map_merge_tups (map_tup1 t1) (map_tup2 t2 t3));
-              (* NOTE: we cannot use lists/arrays for now. They require the
-           data-inside to be homogeneous (e.g., same rangedness of ranged
-           numbers) which we cannot guarantee right now. This can be fixed once
-           we update Crowbar and get access to the new `dynamic_bind` generator
-           combinator.
-
-           map [g; list g] map_variable_list;
-           map [g; list g] (fun t ts -> map_variable_array t (Array.of_list ts));
-        *)
-            
+            map [range 3] enum;
+            map [g] map_singleton_list;
+            map [g] map_dup_list;
+            map [g] map_def;
+            map [g] map_conv_id;
+            map [g] map_conv_obj;
+            map [g] map_conv_singleton_union;
+            map [g] map_mu_dup_list;
+            map [g] map_obj1;
+            map [g; g] map_obj2;
           ])
   in
   with_printer testable_printer g
@@ -797,6 +1012,7 @@ let test_testable_yojson (testable : testable) =
   roundtrip (module Yojson_construct) "yo" T.pp T.ding T.v
 
 let () =
+  (* roundtrip tests: constructions and destructions are inverses of each other *)
   Crowbar.add_test ~name:"ezjsonm roundtrips" [gen] test_testable_ezjsonm ;
   Crowbar.add_test ~name:"yojson roundtrips" [gen] test_testable_yojson ;
   ()
