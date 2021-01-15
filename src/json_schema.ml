@@ -204,28 +204,34 @@ and eq_array_specs a b =
 
 let pp_string ppf s = Json_repr.(pp (module Ezjsonm)) ppf (`String s)
 
-let pp_num ppf m =
-  if abs_float m < 1000. then Format.fprintf ppf "%g" m
+let pp_num ppf num =
+  if abs_float num < 1000. then Format.fprintf ppf "%g" num
   else
-    let (pos, m) = if m < 0. then (false, ~-.m) else (true, m) in
-    if
+    let (is_positive, abs_num) =
+      if num < 0. then (false, ~-.num) else (true, num)
+    in
+    let already_printed =
       List.fold_left
-        (fun acc d ->
-          if acc then acc
-          else
-            let v = log (m +. d) /. log 2. in
-            if abs_float (ceil v -. v) < 0.00001 then (
-              Format.fprintf ppf "%s2^%g" (if pos then "" else "-") v ;
-              if (pos && d < 0.) || ((not pos) && d > 0.) then
-                Format.fprintf ppf "+%g" (abs_float d) ;
-              if (pos && d > 0.) || ((not pos) && d < 0.) then
-                Format.fprintf ppf "-%g" (abs_float d) ;
-              true )
-            else false)
+        (fun already_printed delta ->
+          already_printed
+          ||
+          let candidate = log (abs_num +. delta) /. log 2. in
+          if abs_float (ceil candidate -. candidate) < 0.00001 then (
+            Format.fprintf
+              ppf
+              "%s2^%g"
+              (if is_positive then "" else "-")
+              candidate ;
+            if (is_positive && delta < 0.) || ((not is_positive) && delta > 0.)
+            then Format.fprintf ppf "+%g" (abs_float delta) ;
+            if (is_positive && delta > 0.) || ((not is_positive) && delta < 0.)
+            then Format.fprintf ppf "-%g" (abs_float delta) ;
+            true )
+          else false)
         false
-        [-2.; -1.; 0.; 1.; 2.]
-    then ()
-    else Format.fprintf ppf "%f" m
+        [0.; 1.; -1.; 2.; -2.]
+    in
+    if already_printed then () else Format.fprintf ppf "%f" abs_num
 
 let pp_numeric_specs ppf {multiple_of; minimum; maximum} =
   Format.fprintf
