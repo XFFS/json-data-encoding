@@ -346,6 +346,40 @@ let map_conv_obj (t : testable) : testable =
     let pp = T.pp
   end )
 
+let map_conv_obj_dft (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = T.t
+
+    let v = T.v
+
+    let ding =
+      let open Json_encoding in
+      conv
+        (fun v -> (v, ()))
+        (fun (v, ()) -> v)
+        (obj2 (dft (new_name ()) T.ding T.v) (req (new_name ()) empty))
+
+    let pp = T.pp
+  end )
+
+let map_conv_obj_dft_construct (t : testable) : testable =
+  let module T = (val t) in
+  ( module struct
+    type t = T.t
+
+    let v = T.v
+
+    let ding =
+      let open Json_encoding in
+      conv
+        (fun v -> (v, ()))
+        (fun (v, ()) -> v)
+        (obj2 (dft ~construct:true (new_name ()) T.ding T.v) (req (new_name ()) empty))
+
+    let pp = T.pp
+  end )
+
 let map_conv_singleton_union (t : testable) : testable =
   let module T = (val t) in
   ( module struct
@@ -976,6 +1010,8 @@ let gen =
             map [g] map_def;
             map [g] map_conv_id;
             map [g] map_conv_obj;
+            map [g] map_conv_obj_dft;
+            map [g] map_conv_obj_dft_construct;
             map [g] map_conv_singleton_union;
             map [g] map_mu_dup_list;
             map [g] map_obj1;
