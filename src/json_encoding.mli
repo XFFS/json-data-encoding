@@ -55,9 +55,16 @@ type 'a encoding
 
 (** Builds a json value from an OCaml value and an encoding.
 
+    The optional argument [?include_default_fields] allows to systematically
+    manage the behaviour of [?construct] argument of [dft] fields.
+
     This function works with JSON data represented in the {!Json_repr.ezjsonm}
     format. See functor {!Make} for using another representation. *)
-val construct : 't encoding -> 't -> Json_repr.ezjsonm
+val construct :
+  ?include_default_fields:[`Always | `Auto | `Never] ->
+  't encoding ->
+  't ->
+  Json_repr.ezjsonm
 
 (** The type of json lexeme. This type is compatible with [Jsonm.lexeme] *)
 type jsonm_lexeme =
@@ -72,7 +79,11 @@ type jsonm_lexeme =
   | `Oe ]
 
 (** Builds a lazy Seq representation of the OCaml value. *)
-val construct_seq : 't encoding -> 't -> jsonm_lexeme Seq.t
+val construct_seq :
+  ?include_default_fields:[`Always | `Auto | `Never] ->
+  't encoding ->
+  't ->
+  jsonm_lexeme Seq.t
 
 (** Converts json AST ([ezjsonm]) into a sequence representation *)
 val jsonm_lexeme_seq_of_ezjson : Json_repr.ezjsonm -> jsonm_lexeme Seq.t
@@ -568,7 +579,11 @@ module type S = sig
   type repr_value
 
   (** Same as {!construct} for a custom JSON representation. *)
-  val construct : 't encoding -> 't -> repr_value
+  val construct :
+    ?include_default_fields:[`Always | `Auto | `Never] ->
+    't encoding ->
+    't ->
+    repr_value
 
   (** Same as {!destruct} for a custom JSON representation. *)
   val destruct : 't encoding -> repr_value -> 't

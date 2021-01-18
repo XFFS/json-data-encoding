@@ -155,7 +155,11 @@ and 't case =
 module type S = sig
   type repr_value
 
-  val construct : 't encoding -> 't -> repr_value
+  val construct :
+    ?include_default_fields:[`Always | `Auto | `Never] ->
+    't encoding ->
+    't ->
+    repr_value
 
   val destruct : 't encoding -> repr_value -> 't
 
@@ -170,7 +174,7 @@ module Make (Repr : Json_repr.Repr) : S with type repr_value = Repr.value =
 struct
   type repr_value = Repr.value
 
-  let construct enc v =
+  let construct ?(include_default_fields = `Auto) enc v =
     let rec construct : type t. t encoding -> t -> Repr.value = function
       | Null ->
           fun () -> Repr.repr `Null
@@ -217,7 +221,17 @@ struct
           fun v -> Repr.repr (`O [(n, w v)])
       | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
           let w v = construct t v in
-          fun v -> Repr.repr (`O (if construct_default || v <> d then [(n, w v)] else []))
+          let inc_default =
+            match include_default_fields with
+            | `Auto ->
+                construct_default
+            | `Never ->
+                false
+            | `Always ->
+                true
+          in
+          fun v ->
+            Repr.repr (`O (if inc_default || v <> d then [(n, w v)] else []))
       | Obj (Opt {name = n; encoding = t}) -> (
           let w v = construct t v in
           function
@@ -1430,7 +1444,7 @@ module JsonmLexemeSeq = struct
   and jsonm_lexeme_seq_of_ezjson_vs vs =
     Seq.flat_map (fun v -> jsonm_lexeme_seq_of_ezjson v) (List.to_seq vs)
 
-  let construct_seq enc v =
+  let construct_seq ?(include_default_fields = `Auto) enc v =
     (* The main entry-point, it is mutually recursive with some other entry
        points for specific "states" of the "state-machine" that this function
        represents.
@@ -1482,9 +1496,19 @@ module JsonmLexemeSeq = struct
           function [||] -> empty_arr | vs -> `As +< construct_arr t vs +> `Ae )
       | Obj (Req {name = n; encoding = t}) ->
           fun v -> `Os +< construct_named n t v +> `Oe
-      | Obj (Dft {name = n; encoding = t; default = d}) ->
+      | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
           fun v ->
-            if v = d then empty_obj else `Os +< construct_named n t v +> `Oe
+            let inc_default =
+              match include_default_fields with
+              | `Auto ->
+                  construct_default
+              | `Never ->
+                  false
+              | `Always ->
+                  true
+            in
+            if inc_default || v <> d then `Os +< construct_named n t v +> `Oe
+            else empty_obj
       | Obj (Opt {name = n; encoding = t}) -> (
           function
           | None -> empty_obj | Some v -> `Os +< construct_named n t v +> `Oe )
@@ -1534,7 +1558,17 @@ module JsonmLexemeSeq = struct
       | Obj (Req {name = n; encoding = t}) ->
           fun v -> construct_named n t v
       | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
-          fun v -> if construct_default || v <> d then construct_named n t v else Seq.empty
+          fun v ->
+            let inc_default =
+              match include_default_fields with
+              | `Auto ->
+                  construct_default
+              | `Never ->
+                  false
+              | `Always ->
+                  true
+            in
+            if inc_default || v <> d then construct_named n t v else Seq.empty
       | Obj (Opt {name = n; encoding = t}) -> (
           function None -> Seq.empty | Some v -> construct_named n t v )
       | Obj _ ->
@@ -1615,7 +1649,11 @@ end
 
 (* Exporting the important values from [JsonmLexemeSeq] *)
 
-let construct_seq : 't encoding -> 't -> jsonm_lexeme Seq.t =
+let construct_seq :
+    ?include_default_fields:[`Always | `Auto | `Never] ->
+    't encoding ->
+    't ->
+    jsonm_lexeme Seq.t =
   JsonmLexemeSeq.construct_seq
 
 let jsonm_lexeme_seq_of_ezjson = JsonmLexemeSeq.jsonm_lexeme_seq_of_ezjson

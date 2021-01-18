@@ -375,7 +375,9 @@ let map_conv_obj_dft_construct (t : testable) : testable =
       conv
         (fun v -> (v, ()))
         (fun (v, ()) -> v)
-        (obj2 (dft ~construct:true (new_name ()) T.ding T.v) (req (new_name ()) empty))
+        (obj2
+           (dft ~construct:true (new_name ()) T.ding T.v)
+           (req (new_name ()) empty))
 
     let pp = T.pp
   end )
