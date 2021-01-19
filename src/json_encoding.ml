@@ -170,6 +170,15 @@ module type S = sig
     't encoding
 end
 
+let inc_field include_default_fields construct_default =
+  match include_default_fields with
+  | `Auto ->
+      construct_default
+  | `Never ->
+      false
+  | `Always ->
+      true
+
 module Make (Repr : Json_repr.Repr) : S with type repr_value = Repr.value =
 struct
   type repr_value = Repr.value
@@ -222,13 +231,7 @@ struct
       | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
           let w v = construct t v in
           let inc_default =
-            match include_default_fields with
-            | `Auto ->
-                construct_default
-            | `Never ->
-                false
-            | `Always ->
-                true
+            inc_field include_default_fields construct_default
           in
           fun v ->
             Repr.repr (`O (if inc_default || v <> d then [(n, w v)] else []))
@@ -1499,13 +1502,7 @@ module JsonmLexemeSeq = struct
       | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
           fun v ->
             let inc_default =
-              match include_default_fields with
-              | `Auto ->
-                  construct_default
-              | `Never ->
-                  false
-              | `Always ->
-                  true
+              inc_field include_default_fields construct_default
             in
             if inc_default || v <> d then `Os +< construct_named n t v +> `Oe
             else empty_obj
@@ -1560,13 +1557,7 @@ module JsonmLexemeSeq = struct
       | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
           fun v ->
             let inc_default =
-              match include_default_fields with
-              | `Auto ->
-                  construct_default
-              | `Never ->
-                  false
-              | `Always ->
-                  true
+              inc_field include_default_fields construct_default
             in
             if inc_default || v <> d then construct_named n t v else Seq.empty
       | Obj (Opt {name = n; encoding = t}) -> (
