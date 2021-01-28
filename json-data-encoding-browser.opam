@@ -5,7 +5,7 @@ maintainer: "contact@nomadic-labs.com"
 authors: [ "Nomadic Labs" "Ocamlpro" ]
 homepage: "https://gitlab.com/nomadic-labs/json-data-encoding"
 bug-reports: "https://gitlab.com/nomadic-labs/json-data-encoding/issues"
-license: "LGPLv3 w/ linking exception"
+license: "MIT"
 dev-repo: "git+https://gitlab.com/nomadic-labs/json-data-encoding"
 
 build: [
