@@ -84,8 +84,7 @@ let () = Format.printf "colors (RGB/CMYK):\n%a\n\n%!" Json_schema.pp s
 
 let e =
   let open Json_encoding in
-  mu "slist"
-  @@ fun self ->
+  mu "slist" @@ fun self ->
   union
     [
       case

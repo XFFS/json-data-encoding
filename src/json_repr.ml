@@ -52,8 +52,8 @@ let repr_uid () = ref None
 
 let eq_repr_uid : 'a -> 'a repr_uid -> 'b repr_uid -> 'b option =
  fun a ta tb ->
-  tb := None ;
-  ta := Some a ;
+  tb := None;
+  ta := Some a;
   !tb
 
 module type Repr = sig
@@ -98,42 +98,25 @@ module Yojson = struct
     | `Variant of string * value option ]
 
   let view = function
-    | `Intlit i ->
-        `String i
-    | `Tuple l ->
-        `A l
-    | `Variant (label, Some x) ->
-        `A [`String label; x]
-    | `Variant (label, None) ->
-        `String label
-    | `Assoc l ->
-        `O l
-    | `List l ->
-        `A l
-    | `Int i ->
-        `Float (float i)
-    | `Float f ->
-        `Float f
-    | `String s ->
-        `String s
-    | `Null ->
-        `Null
-    | `Bool b ->
-        `Bool b
+    | `Intlit i -> `String i
+    | `Tuple l -> `A l
+    | `Variant (label, Some x) -> `A [`String label; x]
+    | `Variant (label, None) -> `String label
+    | `Assoc l -> `O l
+    | `List l -> `A l
+    | `Int i -> `Float (float i)
+    | `Float f -> `Float f
+    | `String s -> `String s
+    | `Null -> `Null
+    | `Bool b -> `Bool b
 
   let repr = function
-    | `O l ->
-        `Assoc l
-    | `A l ->
-        `List l
-    | `Bool b ->
-        `Bool b
-    | `Float f ->
-        `Float f
-    | `String s ->
-        `String s
-    | `Null ->
-        `Null
+    | `O l -> `Assoc l
+    | `A l -> `List l
+    | `Bool b -> `Bool b
+    | `Float f -> `Float f
+    | `String s -> `String s
+    | `Null -> `Null
 
   let repr_uid = repr_uid ()
 end
@@ -148,41 +131,30 @@ let convert :
     tt =
  fun (module Repr_f) (module Repr_t) v ->
   match eq_repr_uid v Repr_f.repr_uid Repr_t.repr_uid with
-  | Some r ->
-      r
+  | Some r -> r
   | None ->
       let rec conv v =
         match Repr_f.view v with
-        | (`Float _ | `Bool _ | `String _ | `Null) as v ->
-            Repr_t.repr v
-        | `A values ->
-            Repr_t.repr (`A (List.map conv values))
+        | (`Float _ | `Bool _ | `String _ | `Null) as v -> Repr_t.repr v
+        | `A values -> Repr_t.repr (`A (List.map conv values))
         | `O values ->
             Repr_t.repr (`O (List.map (fun (k, v) -> (k, conv v)) values))
       in
       conv v
 
 let pp_string ppf s =
-  Format.fprintf ppf "\"" ;
+  Format.fprintf ppf "\"";
   for i = 0 to String.length s - 1 do
     match s.[i] with
-    | '\"' ->
-        Format.fprintf ppf "\\\""
-    | '\n' ->
-        Format.fprintf ppf "\\n"
-    | '\r' ->
-        Format.fprintf ppf "\\r"
-    | '\b' ->
-        Format.fprintf ppf "\\b"
-    | '\t' ->
-        Format.fprintf ppf "\\t"
-    | '\\' ->
-        Format.fprintf ppf "\\\\"
-    | '\x00' .. '\x1F' as c ->
-        Format.fprintf ppf "\\u%04x" (Char.code c)
-    | c ->
-        Format.fprintf ppf "%c" c
-  done ;
+    | '\"' -> Format.fprintf ppf "\\\""
+    | '\n' -> Format.fprintf ppf "\\n"
+    | '\r' -> Format.fprintf ppf "\\r"
+    | '\b' -> Format.fprintf ppf "\\b"
+    | '\t' -> Format.fprintf ppf "\\t"
+    | '\\' -> Format.fprintf ppf "\\\\"
+    | '\x00' .. '\x1F' as c -> Format.fprintf ppf "\\u%04x" (Char.code c)
+    | c -> Format.fprintf ppf "%c" c
+  done;
   Format.fprintf ppf "\""
 
 let pp ?(compact = false) ?(pp_string = pp_string) (type value)
@@ -198,23 +170,18 @@ let pp ?(compact = false) ?(pp_string = pp_string) (type value)
     | `A l ->
         let pp_sep ppf () = Format.fprintf ppf "," in
         Format.fprintf ppf "[%a]" (Format.pp_print_list ~pp_sep pp_compact) l
-    | `Bool true ->
-        Format.fprintf ppf "true"
-    | `Bool false ->
-        Format.fprintf ppf "false"
+    | `Bool true -> Format.fprintf ppf "true"
+    | `Bool false -> Format.fprintf ppf "false"
     | `Float f ->
         let (fract, intr) = modf f in
         if fract = 0.0 then Format.fprintf ppf "%.0f" intr
         else Format.fprintf ppf "%g" f
-    | `String s ->
-        pp_string ppf s
-    | `Null ->
-        Format.fprintf ppf "null"
+    | `String s -> pp_string ppf s
+    | `Null -> Format.fprintf ppf "null"
   in
   let rec pp_box ppf v =
     match Repr.view v with
-    | `O [] ->
-        Format.fprintf ppf "{}"
+    | `O [] -> Format.fprintf ppf "{}"
     | `O l ->
         let pp_sep ppf () = Format.fprintf ppf ",@ " in
         let pp_field ppf (name, v) =
@@ -225,8 +192,7 @@ let pp ?(compact = false) ?(pp_string = pp_string) (type value)
           "@[<hov 2>{ %a }@]"
           (Format.pp_print_list ~pp_sep pp_field)
           l
-    | `A [] ->
-        Format.fprintf ppf "[]"
+    | `A [] -> Format.fprintf ppf "[]"
     | `A l ->
         let pp_sep ppf () = Format.fprintf ppf ",@ " in
         Format.fprintf
@@ -234,8 +200,7 @@ let pp ?(compact = false) ?(pp_string = pp_string) (type value)
           "@[<hov 2>[ %a ]@]"
           (Format.pp_print_list ~pp_sep pp_box)
           l
-    | _ ->
-        pp_compact ppf v
+    | _ -> pp_compact ppf v
   in
   if compact then pp_compact ppf v else pp_box ppf v
 
@@ -243,54 +208,35 @@ let from_yojson non_basic =
   (* Delete `Variant, `Tuple and `Intlit *)
   let rec to_basic non_basic =
     match non_basic with
-    | `Intlit i ->
-        `String i
-    | `Tuple l ->
-        `List (List.map to_basic l)
-    | `Variant (label, Some x) ->
-        `List [`String label; to_basic x]
-    | `Variant (label, None) ->
-        `String label
+    | `Intlit i -> `String i
+    | `Tuple l -> `List (List.map to_basic l)
+    | `Variant (label, Some x) -> `List [`String label; to_basic x]
+    | `Variant (label, None) -> `String label
     | `Assoc l ->
         `Assoc (List.map (fun (key, value) -> (key, to_basic value)) l)
-    | `List l ->
-        `List (List.map to_basic l)
-    | `Int i ->
-        `Int i
-    | `Float f ->
-        `Float f
-    | `String s ->
-        `String s
-    | `Null ->
-        `Null
-    | `Bool b ->
-        `Bool b
+    | `List l -> `List (List.map to_basic l)
+    | `Int i -> `Int i
+    | `Float f -> `Float f
+    | `String s -> `String s
+    | `Null -> `Null
+    | `Bool b -> `Bool b
   in
   (* Rename `Assoc, `Int and `List *)
   let rec to_value : 'a. _ -> ([> ezjsonm] as 'a) = function
-    | `List l ->
-        `A (List.map to_value l)
-    | `Assoc l ->
-        `O (List.map (fun (key, value) -> (key, to_value value)) l)
-    | `Int i ->
-        `Float (float_of_int i)
-    | `Float f ->
-        `Float f
-    | `Null ->
-        `Null
-    | `String s ->
-        `String s
-    | `Bool b ->
-        `Bool b
+    | `List l -> `A (List.map to_value l)
+    | `Assoc l -> `O (List.map (fun (key, value) -> (key, to_value value)) l)
+    | `Int i -> `Float (float_of_int i)
+    | `Float f -> `Float f
+    | `Null -> `Null
+    | `String s -> `String s
+    | `Bool b -> `Bool b
   in
   to_basic (non_basic :> yojson) |> to_value
 
 let to_yojson json =
   let rec aux : 'a. _ -> ([> yojson] as 'a) = function
-    | `A values ->
-        `List (List.map aux values)
-    | `O values ->
-        `Assoc (List.map (fun (k, v) -> (k, aux v)) values)
+    | `A values -> `List (List.map aux values)
+    | `O values -> `Assoc (List.map (fun (k, v) -> (k, aux v)) values)
     | `Float f ->
         let (fract, intr) = modf f in
         let max_intf = float 0x3F_FF_FF_FF in
@@ -299,12 +245,9 @@ let to_yojson json =
           if intr >= min_intf && intr <= max_intf then `Int (int_of_float intr)
           else `Intlit (Printf.sprintf "%.0f" intr)
         else `Float f
-    | `Bool b ->
-        `Bool b
-    | `String s ->
-        `String s
-    | `Null ->
-        `Null
+    | `Bool b -> `Bool b
+    | `String s -> `String s
+    | `Null -> `Null
   in
   aux (json :> ezjsonm)
 

@@ -42,9 +42,9 @@ let short_string =
       map [char] (fun c -> String.make 1 c);
       map [char; char; char; char] (fun c1 c2 c3 c4 ->
           let s = Bytes.make 4 c1 in
-          Bytes.set s 1 c2 ;
-          Bytes.set s 2 c3 ;
-          Bytes.set s 3 c4 ;
+          Bytes.set s 1 c2;
+          Bytes.set s 2 c3;
+          Bytes.set s 3 c4;
           Bytes.to_string s);
     ]
 
@@ -55,9 +55,9 @@ let short_string1 =
       map [char] (fun c -> String.make 1 c);
       map [char; char; char; char] (fun c1 c2 c3 c4 ->
           let s = Bytes.make 4 c1 in
-          Bytes.set s 1 c2 ;
-          Bytes.set s 2 c3 ;
-          Bytes.set s 3 c4 ;
+          Bytes.set s 1 c2;
+          Bytes.set s 2 c3;
+          Bytes.set s 3 c4;
           Bytes.to_string s);
     ]
 
@@ -186,11 +186,10 @@ let map_range_int a b c : testable =
   let (small, middle, big) =
     match List.sort compare [a; b; c] with
     | [small; middle; big] ->
-        assert (small <= middle) ;
-        assert (middle <= big) ;
+        assert (small <= middle);
+        assert (middle <= big);
         (small, middle, big)
-    | _ ->
-        assert false
+    | _ -> assert false
   in
   ( module struct
     type t = int
@@ -212,11 +211,10 @@ let map_range_float a b c : testable =
     let (small, middle, big) =
       match List.sort compare [a; b; c] with
       | [small; middle; big] ->
-          assert (small <= middle) ;
-          assert (middle <= big) ;
+          assert (small <= middle);
+          assert (middle <= big);
           (small, middle, big)
-      | _ ->
-          assert false
+      | _ -> assert false
     in
     ( module struct
       type t = float
@@ -280,12 +278,12 @@ let map_float f : testable =
 let new_name =
   let r = ref 0 in
   fun () ->
-    incr r ;
+    incr r;
     "n" ^ string_of_int !r
 
 let enum (n : int) : testable =
-  assert (0 <= n) ;
-  assert (n < 3) ;
+  assert (0 <= n);
+  assert (n < 3);
   ( module struct
     type t = Zilch | Yi | Dos
 
@@ -296,12 +294,9 @@ let enum (n : int) : testable =
         [(new_name (), Zilch); (new_name (), Yi); (new_name (), Dos)]
 
     let pp ppf = function
-      | Zilch ->
-          Crowbar.pp_string ppf "Zilch"
-      | Yi ->
-          Crowbar.pp_string ppf "Yi"
-      | Dos ->
-          Crowbar.pp_string ppf "Dos"
+      | Zilch -> Crowbar.pp_string ppf "Zilch"
+      | Yi -> Crowbar.pp_string ppf "Yi"
+      | Dos -> Crowbar.pp_string ppf "Dos"
   end )
 
 let map_def (t : testable) : testable =
@@ -419,10 +414,8 @@ let map_mu_dup_list (t : testable) : testable =
             ])
 
     let pp fmt = function
-      | [v; w] ->
-          Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
-      | _ ->
-          assert false
+      | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
+      | _ -> assert false
   end )
 
 let map_singleton_list (t : testable) : testable =
@@ -435,10 +428,8 @@ let map_singleton_list (t : testable) : testable =
     let ding = Json_encoding.list T.ding
 
     let pp fmt = function
-      | [v] ->
-          Format.fprintf fmt "[%a]" T.pp v
-      | _ ->
-          assert false
+      | [v] -> Format.fprintf fmt "[%a]" T.pp v
+      | _ -> assert false
   end )
 
 let map_dup_list (t : testable) : testable =
@@ -451,10 +442,8 @@ let map_dup_list (t : testable) : testable =
     let ding = Json_encoding.list T.ding
 
     let pp fmt = function
-      | [v; w] ->
-          Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
-      | _ ->
-          assert false
+      | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
+      | _ -> assert false
   end )
 
 let map_some (t : testable) : testable =
@@ -474,10 +463,8 @@ let map_some (t : testable) : testable =
         "@[<hv 1>%a@]"
         (fun fmt v ->
           match v with
-          | None ->
-              Format.fprintf fmt "None"
-          | Some v ->
-              Format.fprintf fmt "Some(%a)" T.pp v)
+          | None -> Format.fprintf fmt "None"
+          | Some v -> Format.fprintf fmt "Some(%a)" T.pp v)
         o
   end )
 
@@ -498,10 +485,8 @@ let map_none (t : testable) : testable =
         "@[<hv 1>%a@]"
         (fun fmt v ->
           match v with
-          | None ->
-              Format.fprintf fmt "None"
-          | Some v ->
-              Format.fprintf fmt "Some(%a)" T.pp v)
+          | None -> Format.fprintf fmt "None"
+          | Some v -> Format.fprintf fmt "Some(%a)" T.pp v)
         o
   end )
 
@@ -732,14 +717,7 @@ let map_tup7 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
     type t = T1.t * T2.t * T3.t * T4.t * T5.t * T6.t * T7.t
 
     let ding =
-      Json_encoding.tup7
-        T1.ding
-        T2.ding
-        T3.ding
-        T4.ding
-        T5.ding
-        T6.ding
-        T7.ding
+      Json_encoding.tup7 T1.ding T2.ding T3.ding T4.ding T5.ding T6.ding T7.ding
 
     let v = (T1.v, T2.v, T3.v, T4.v, T5.v, T6.v, T7.v)
 
@@ -764,8 +742,7 @@ let map_tup7 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
   end )
 
 let map_tup8 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
-    (t5 : testable) (t6 : testable) (t7 : testable) (t8 : testable) : testable
-    =
+    (t5 : testable) (t6 : testable) (t7 : testable) (t8 : testable) : testable =
   let module T1 = (val t1) in
   let module T2 = (val t2) in
   let module T3 = (val t3) in
@@ -1000,8 +977,7 @@ let gen =
             map [g; g; g; g] map_tup4;
             map [g; g; g; g; g] map_tup5;
             map [g; g; g; g; g; g] map_tup6;
-            map [g; g] (fun t1 t2 ->
-                map_merge_tups (map_tup1 t1) (map_tup1 t2));
+            map [g; g] (fun t1 t2 -> map_merge_tups (map_tup1 t1) (map_tup1 t2));
             map [g; g; g] (fun t1 t2 t3 ->
                 map_merge_tups (map_tup2 t1 t2) (map_tup1 t3));
             map [g; g; g] (fun t1 t2 t3 ->
@@ -1050,34 +1026,24 @@ let test_testable_yojson (testable : testable) =
   roundtrip (module Yojson_construct) "yo" T.pp T.ding T.v
 
 let pp_jsonm_lexeme fmt = function
-  | `Null ->
-      Format.pp_print_string fmt "null"
-  | `Bool true ->
-      Format.pp_print_string fmt "true"
-  | `Bool false ->
-      Format.pp_print_string fmt "false"
-  | `String _ ->
-      Format.pp_print_string fmt "\"..\""
-  | `Float _ ->
-      Format.pp_print_string fmt "(float)"
-  | `Name _ ->
-      Format.pp_print_string fmt "(name):"
-  | `As ->
-      Format.pp_print_string fmt "["
-  | `Ae ->
-      Format.pp_print_string fmt "]"
-  | `Os ->
-      Format.pp_print_string fmt "{"
-  | `Oe ->
-      Format.pp_print_string fmt "}"
+  | `Null -> Format.pp_print_string fmt "null"
+  | `Bool true -> Format.pp_print_string fmt "true"
+  | `Bool false -> Format.pp_print_string fmt "false"
+  | `String _ -> Format.pp_print_string fmt "\"..\""
+  | `Float _ -> Format.pp_print_string fmt "(float)"
+  | `Name _ -> Format.pp_print_string fmt "(name):"
+  | `As -> Format.pp_print_string fmt "["
+  | `Ae -> Format.pp_print_string fmt "]"
+  | `Os -> Format.pp_print_string fmt "{"
+  | `Oe -> Format.pp_print_string fmt "}"
 
 let pp_jsonm_lexeme_list fmt jls =
-  Format.pp_print_string fmt "[ " ;
+  Format.pp_print_string fmt "[ ";
   Format.pp_print_list
     ~pp_sep:(fun fmt () -> Format.pp_print_string fmt " ")
     pp_jsonm_lexeme
     fmt
-    jls ;
+    jls;
   Format.pp_print_string fmt " ]"
 
 let test_testable_jsonm_lexeme_seq (testable : testable) =
@@ -1103,16 +1069,16 @@ let test_testable_schema_jsonm_lexeme_seq (testable : testable) =
 
 let () =
   (* roundtrip tests: constructions and destructions are inverses of each other *)
-  Crowbar.add_test ~name:"ezjsonm roundtrips" [gen] test_testable_ezjsonm ;
-  Crowbar.add_test ~name:"yojson roundtrips" [gen] test_testable_yojson ;
+  Crowbar.add_test ~name:"ezjsonm roundtrips" [gen] test_testable_ezjsonm;
+  Crowbar.add_test ~name:"yojson roundtrips" [gen] test_testable_yojson;
   (* sequence construction test: direct sequence construction and construction
      via ezjsonm yield the same result *)
   Crowbar.add_test
     ~name:"->seq ~ ->ezjson->seq"
     [gen]
-    test_testable_jsonm_lexeme_seq ;
+    test_testable_jsonm_lexeme_seq;
   Crowbar.add_test
     ~name:"schema->seq ~ schema->ezjson->seq"
     [gen]
-    test_testable_schema_jsonm_lexeme_seq ;
+    test_testable_schema_jsonm_lexeme_seq;
   ()

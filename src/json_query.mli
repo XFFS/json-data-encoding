@@ -101,8 +101,7 @@ val query_all : path -> Json_repr.ezjsonm -> Json_repr.ezjsonm list
 
     This function works with JSON data represented in the {!Json_repr.ezjsonm}
     format. See functor {!Make} for using another representation. *)
-val insert :
-  path -> Json_repr.ezjsonm -> Json_repr.ezjsonm -> Json_repr.ezjsonm
+val insert : path -> Json_repr.ezjsonm -> Json_repr.ezjsonm -> Json_repr.ezjsonm
 
 (** Same as {!insert}, except that if the path leads to a pre-existing
     value, it is replaced with the new one instead of being merged.

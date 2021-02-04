@@ -40,9 +40,8 @@ let forest_points = ref 0
 let (tree_encoding, forest_encoding) =
   let open Json_encoding in
   let mu_tree forest_enc =
-    mu "tree"
-    @@ fun tree_enc ->
-    incr tree_points ;
+    mu "tree" @@ fun tree_enc ->
+    incr tree_points;
     union
       [
         case
@@ -58,9 +57,8 @@ let (tree_encoding, forest_encoding) =
       ]
   in
   let mu_forest =
-    mu "forest"
-    @@ fun forest_enc ->
-    incr forest_points ;
+    mu "forest" @@ fun forest_enc ->
+    incr forest_points;
     union
       [
         case
@@ -83,8 +81,8 @@ let forest_points_done = !forest_points
 
 let points () =
   (* fixpointing functions are not called before they are used *)
-  assert (tree_points_done = 0) ;
-  assert (tree_points_done = 0) ;
+  assert (tree_points_done = 0);
+  assert (tree_points_done = 0);
   ()
 
 let tiny_test () =
@@ -101,8 +99,8 @@ let tiny_test () =
     construct forest_encoding (Children (Node (Leaf, Empty), Empty))
   in
   (* calls are memoised so they can't be too many of them *)
-  assert (!tree_points <= 2) ;
-  assert (!forest_points <= 1) ;
+  assert (!tree_points <= 2);
+  assert (!forest_points <= 1);
   ()
 
 let flip_flop () =
@@ -116,8 +114,8 @@ let flip_flop () =
   let (_ : Json_repr.ezjsonm) = construct tree_encoding flop in
   let (_ : Json_repr.ezjsonm) = construct tree_encoding flip in
   let (_ : Json_repr.ezjsonm) = construct tree_encoding flop in
-  assert (!tree_points <= 2) ;
-  assert (!forest_points <= 1) ;
+  assert (!tree_points <= 2);
+  assert (!forest_points <= 1);
   ()
 
 let big_test () =
@@ -140,8 +138,8 @@ let big_test () =
   let (_ : Json_repr.ezjsonm) = construct forest_encoding f in
   let t = Node (t, f) in
   let (_ : Json_repr.ezjsonm) = construct tree_encoding t in
-  assert (!tree_points <= 2) ;
-  assert (!forest_points <= 1) ;
+  assert (!tree_points <= 2);
+  assert (!forest_points <= 1);
   ()
 
 let tests =
@@ -153,5 +151,5 @@ let tests =
   ]
 
 let () =
-  Random.self_init () ;
+  Random.self_init ();
   Alcotest.run "json-data-encoding" [("mu", tests)]

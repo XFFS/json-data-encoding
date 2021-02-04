@@ -31,16 +31,16 @@ type schema
 
 (** A node in the schema, embeds all type-agnostic specs. *)
 and element = {
-  title : string option;  (** An optional short description. *)
-  description : string option;  (** An optional long description. *)
-  default : Json_repr.any option;
+  title: string option;  (** An optional short description. *)
+  description: string option;  (** An optional long description. *)
+  default: Json_repr.any option;
       (** A default constant to be substituted in case of a missing value. *)
-  enum : Json_repr.any list option;
+  enum: Json_repr.any list option;
       (** A valid value must equal one of these constants. *)
-  kind : element_kind;  (** The type-specific part. *)
-  format : string option;
+  kind: element_kind;  (** The type-specific part. *)
+  format: string option;
       (** predefined formats such as [date-time], [email], [ipv4], [ipv6], [uri]. *)
-  id : string option;  (** An optional ID. *)
+  id: string option;  (** An optional ID. *)
 }
 
 (** The type-specific part of schema nodes. *)
@@ -78,48 +78,48 @@ and combinator =
 
 (** Parameters of the [Array] and [MonomorphicArray] type specifiers. *)
 and array_specs = {
-  min_items : int;  (** The minimum number of elements. *)
-  max_items : int option;  (** The maximum number of elements. *)
-  unique_items : bool;  (** Teels if all elements must be different. *)
-  additional_items : element option;
+  min_items: int;  (** The minimum number of elements. *)
+  max_items: int option;  (** The maximum number of elements. *)
+  unique_items: bool;  (** Teels if all elements must be different. *)
+  additional_items: element option;
       (** The type of additional items, if allowed. *)
 }
 
 (** Parameters of the [Integer] and [Number] type specifiers. *)
 and numeric_specs = {
-  multiple_of : float option;  (** An optional divisor of valid values *)
-  minimum : (float * [`Inclusive | `Exclusive]) option;
+  multiple_of: float option;  (** An optional divisor of valid values *)
+  minimum: (float * [`Inclusive | `Exclusive]) option;
       (** The optional lower bound of the numeric range *)
-  maximum : (float * [`Inclusive | `Exclusive]) option;
+  maximum: (float * [`Inclusive | `Exclusive]) option;
       (** The optional upper bound of the numeric range *)
 }
 
 (** Parameters of the [Object] type specifier. *)
 and object_specs = {
-  properties : (string * element * bool * Json_repr.any option) list;
+  properties: (string * element * bool * Json_repr.any option) list;
       (** The names and types of properties, with a flag to indicate if
         they are required ([true]) or optional. *)
-  pattern_properties : (string * element) list;
+  pattern_properties: (string * element) list;
       (** Alternative definition of properties, matching field names
         using regexps instead of constant strings. *)
-  additional_properties : element option;
+  additional_properties: element option;
       (** The type of additional properties, if allowed. *)
-  min_properties : int;  (** The minimum number of properties. *)
-  max_properties : int option;  (** The maximum number of properties. *)
-  schema_dependencies : (string * element) list;
+  min_properties: int;  (** The minimum number of properties. *)
+  max_properties: int option;  (** The maximum number of properties. *)
+  schema_dependencies: (string * element) list;
       (** Additional schemas the value must verify if a property is
         present (property, additional schema). *)
-  property_dependencies : (string * string list) list;
+  property_dependencies: (string * string list) list;
       (** Additional properties required whenever some property is
         present (property, additional properties). *)
 }
 
 (** Parameters of the [String] type specifier. *)
 and string_specs = {
-  pattern : string option;  (** A regexp the string must conform to. *)
-  min_length : int;  (** The minimum string length. *)
-  max_length : int option;  (** The maximum string length. *)
-  str_format : string option;
+  pattern: string option;  (** A regexp the string must conform to. *)
+  min_length: int;  (** The minimum string length. *)
+  max_length: int option;  (** The maximum string length. *)
+  str_format: string option;
       (** Special format of the string (cf {{:https://json-schema.org/understanding-json-schema/reference/string.html#format} json schema documentation}). *)
 }
 

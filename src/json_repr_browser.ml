@@ -30,33 +30,23 @@ module Repr = struct
   type value = unit Js.t
 
   let repr = function
-    | `String s ->
-        Js.Unsafe.coerce (Js.string s)
-    | `Float f ->
-        Js.Unsafe.coerce (Obj.magic f)
-    | `Bool true ->
-        Js.Unsafe.coerce Js._true
-    | `Bool false ->
-        Js.Unsafe.coerce Js._false
-    | `Null ->
-        Obj.magic Js.null (* Oh, nom nom nom! *)
+    | `String s -> Js.Unsafe.coerce (Js.string s)
+    | `Float f -> Js.Unsafe.coerce (Obj.magic f)
+    | `Bool true -> Js.Unsafe.coerce Js._true
+    | `Bool false -> Js.Unsafe.coerce Js._false
+    | `Null -> Obj.magic Js.null (* Oh, nom nom nom! *)
     | `O fields ->
         let obj = Js.Unsafe.new_obj (Js.Unsafe.pure_js_expr "Object") [||] in
-        List.iter (fun (n, v) -> Js.Unsafe.set obj (Js.string n) v) fields ;
+        List.iter (fun (n, v) -> Js.Unsafe.set obj (Js.string n) v) fields;
         obj
-    | `A cells ->
-        Js.Unsafe.coerce (Js.array (Array.of_list cells))
+    | `A cells -> Js.Unsafe.coerce (Js.array (Array.of_list cells))
 
   let view v =
     match Js.to_string (Js.typeof v) with
-    | "string" ->
-        `String (Js.to_string (Js.Unsafe.coerce v))
-    | "number" ->
-        `Float (Obj.magic v)
-    | "boolean" ->
-        `Bool (Js.to_bool (Obj.magic v))
-    | "undefined" ->
-        `Null (* Oh yeah! *)
+    | "string" -> `String (Js.to_string (Js.Unsafe.coerce v))
+    | "number" -> `Float (Obj.magic v)
+    | "boolean" -> `Bool (Js.to_bool (Obj.magic v))
+    | "undefined" -> `Null (* Oh yeah! *)
     | "object" ->
         if v == Js.Unsafe.pure_js_expr "null" then `Null
         else if Js.instanceof v (Js.Unsafe.pure_js_expr "Array") then
@@ -75,8 +65,7 @@ module Repr = struct
                     [|Js.Unsafe.inject v|])
           in
           `O (List.map (fun f -> (Js.to_string f, Js.Unsafe.get v f)) fields)
-    | _ ->
-        invalid_arg "Json_repr_browser.Repr.view"
+    | _ -> invalid_arg "Json_repr_browser.Repr.view"
 
   let repr_uid = Json_repr.repr_uid ()
 end
@@ -88,8 +77,7 @@ let js_stringify ?indent obj =
     (Js.Unsafe.variable "JSON")
     "stringify"
     ( match indent with
-    | None ->
-        [|Js.Unsafe.inject obj|]
+    | None -> [|Js.Unsafe.inject obj|]
     | Some indent ->
         [|
           Js.Unsafe.inject obj;
