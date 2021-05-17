@@ -826,8 +826,17 @@ let schema ?definitions_path encoding =
             cases
         in
         element (Combine (One_of, elements))
+  and schema_specialization_first_pass : type t. t encoding -> element =
+   (* This function is needed as to not create a level of inderaction when creating
+      a top-level def. *)
+   fun encoding ->
+    match encoding with
+    | Describe {title; description; encoding; _} ->
+        let schema = patch_description ?title ?description (schema encoding) in
+        schema
+    | _ -> schema encoding
   in
-  let schema = schema encoding in
+  let schema = schema_specialization_first_pass encoding in
   update schema !sch
 
 (*-- utility wrappers over the GADT ------------------------------------------*)
