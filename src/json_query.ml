@@ -82,21 +82,21 @@ let path_of_json_pointer ?(wildcards = true) str =
       | '~' ->
           if i + 1 >= len then
             raise
-              (Illegal_pointer_notation (str, i, "Unterminated escape sequence"));
-          ( match str.[i] with
+              (Illegal_pointer_notation (str, i, "Unterminated escape sequence")) ;
+          (match str.[i] with
           | '0' -> Buffer.add_char buf '~'
           | '1' -> Buffer.add_char buf '/'
           | _illegal ->
               raise
                 (Illegal_pointer_notation
-                   (str, i + 1, "Illegal escape character")) );
+                   (str, i + 1, "Illegal escape character"))) ;
           item acc (i + 1)
       | unescaped ->
-          Buffer.add_char buf unescaped;
+          Buffer.add_char buf unescaped ;
           item acc (i + 1)
   and interp () =
     let field = Buffer.contents buf in
-    Buffer.clear buf;
+    Buffer.clear buf ;
     if field = "-" then
       if wildcards then `Next
       else raise (Unsupported_path_item (`Next, "JSON pointer w/o wildcards"))
@@ -119,9 +119,9 @@ module Make (Repr : Json_repr.Repr) = struct
         let i = if i < 0 then List.length cells - i else i in
         query rempath (List.nth cells i)
     | (`Star :: rempath, `O ((_, v) :: rem)) -> (
-        try query rempath v with Not_found -> query path (Repr.repr (`O rem)) )
+        try query rempath v with Not_found -> query path (Repr.repr (`O rem)))
     | (`Star :: rempath, `A (v :: rem)) -> (
-        try query rempath v with Not_found -> query path (Repr.repr (`A rem)) )
+        try query rempath v with Not_found -> query path (Repr.repr (`A rem)))
     | (_, _) -> raise Not_found
 
   let query_all path json =
@@ -139,7 +139,7 @@ module Make (Repr : Json_repr.Repr) = struct
       | (`Star :: rempath, `A cells) -> List.iter (query rempath) cells
       | (_, _) -> ()
     in
-    query path json;
+    query path json ;
     !res
 
   (*-- updates ---------------------------------------------------------------*)
@@ -208,7 +208,7 @@ module Make (Repr : Json_repr.Repr) = struct
       | ((`Index 0 | `Star | `Next) :: rempath, None) ->
           Repr.repr (`A [insert rempath])
       | (`Index i :: rempath, None) ->
-          if i < 0 then raise (Cannot_merge (revpath path));
+          if i < 0 then raise (Cannot_merge (revpath path)) ;
           Repr.repr (`A (nulls [] (max 0 (pred i)) (insert rempath)))
       | ([], None) -> value
       (* insert in existing *)
@@ -217,7 +217,7 @@ module Make (Repr : Json_repr.Repr) = struct
           Repr.repr (`O (insert_fields [] n rempath fields))
       | (`Index i :: rempath, Some (`A cells)) ->
           let i = if i < 0 then List.length cells - i else i in
-          if i < 0 then raise (Cannot_merge (revpath path));
+          if i < 0 then raise (Cannot_merge (revpath path)) ;
           Repr.repr (`A (insert_cells [] i rempath cells))
       | (`Next :: rempath, Some (`A cells)) ->
           Repr.repr (`A (List.rev_append (List.rev cells) [insert rempath]))

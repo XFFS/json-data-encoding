@@ -41,18 +41,18 @@ let o3 len =
 let big len = List.init len (fun _ -> o3 (len / 10))
 
 let test1 len =
-  Printf.printf "Testing big-value streaming (%d)\n%!" len;
+  Printf.printf "Testing big-value streaming (%d)\n%!" len ;
   let big_value = big len in
   let direct_seq = Json_encoding.construct_seq big_encoding big_value in
   let ezjsonm = Json_encoding.construct big_encoding big_value in
   let indirect_seq = Json_encoding.jsonm_lexeme_seq_of_ezjson ezjsonm in
-  assert (List.of_seq direct_seq = List.of_seq indirect_seq);
+  assert (List.of_seq direct_seq = List.of_seq indirect_seq) ;
   Printf.printf "Success for big-value streaming (%d)\n%!" len
 
 let () =
-  test1 0;
-  test1 16;
-  test1 63;
-  test1 514;
-  test1 1001;
+  test1 0 ;
+  test1 16 ;
+  test1 63 ;
+  test1 514 ;
+  test1 1001 ;
   test1 4321

@@ -19,5 +19,5 @@ depends: [
   "uri" {>= "1.9.0" }
   "crowbar" { with-test }
   "alcotest" { with-test }
-  "ocamlformat" { = "0.15.0" & dev }
+  "ocamlformat" { = "0.18.0" & dev }
 ]

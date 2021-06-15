@@ -42,9 +42,9 @@ let short_string =
       map [char] (fun c -> String.make 1 c);
       map [char; char; char; char] (fun c1 c2 c3 c4 ->
           let s = Bytes.make 4 c1 in
-          Bytes.set s 1 c2;
-          Bytes.set s 2 c3;
-          Bytes.set s 3 c4;
+          Bytes.set s 1 c2 ;
+          Bytes.set s 2 c3 ;
+          Bytes.set s 3 c4 ;
           Bytes.to_string s);
     ]
 
@@ -55,9 +55,9 @@ let short_string1 =
       map [char] (fun c -> String.make 1 c);
       map [char; char; char; char] (fun c1 c2 c3 c4 ->
           let s = Bytes.make 4 c1 in
-          Bytes.set s 1 c2;
-          Bytes.set s 2 c3;
-          Bytes.set s 3 c4;
+          Bytes.set s 1 c2 ;
+          Bytes.set s 2 c3 ;
+          Bytes.set s 3 c4 ;
           Bytes.to_string s);
     ]
 
@@ -88,7 +88,7 @@ end
 type testable = (module TESTABLE)
 
 let null : testable =
-  ( module struct
+  (module struct
     type t = unit
 
     let v = ()
@@ -96,10 +96,10 @@ let null : testable =
     let ding = Json_encoding.null
 
     let pp ppf () = Crowbar.pp ppf "(null)"
-  end )
+  end)
 
 let empty : testable =
-  ( module struct
+  (module struct
     type t = unit
 
     let v = ()
@@ -107,10 +107,10 @@ let empty : testable =
     let ding = Json_encoding.empty
 
     let pp ppf () = Crowbar.pp ppf "(empty)"
-  end )
+  end)
 
 let unit : testable =
-  ( module struct
+  (module struct
     type t = unit
 
     let v = ()
@@ -118,10 +118,10 @@ let unit : testable =
     let ding = Json_encoding.unit
 
     let pp ppf () = Crowbar.pp ppf "(unit)"
-  end )
+  end)
 
 let map_constant (s : string) : testable =
-  ( module struct
+  (module struct
     type t = unit
 
     let v = ()
@@ -129,10 +129,10 @@ let map_constant (s : string) : testable =
     let ding = Json_encoding.constant s
 
     let pp ppf () = Crowbar.pp ppf "\"%s\"" s
-  end )
+  end)
 
 let map_int32 (i : int32) : testable =
-  ( module struct
+  (module struct
     type t = int32
 
     let v = i
@@ -140,10 +140,10 @@ let map_int32 (i : int32) : testable =
     let ding = Json_encoding.int32
 
     let pp = Crowbar.pp_int32
-  end )
+  end)
 
 let map_int32_conv (i : int32) : testable =
-  ( module struct
+  (module struct
     type t = int32
 
     let v = i
@@ -151,10 +151,10 @@ let map_int32_conv (i : int32) : testable =
     let ding = Json_encoding.(conv Int32.succ Int32.pred int32)
 
     let pp = Crowbar.pp_int32
-  end )
+  end)
 
 let map_int32_list (i : int32) : testable =
-  ( module struct
+  (module struct
     type t = int32 list
 
     let v =
@@ -164,7 +164,7 @@ let map_int32_list (i : int32) : testable =
     let ding = Json_encoding.(list int32)
 
     let pp = Crowbar.(pp_list pp_int32)
-  end )
+  end)
 
 let lower_bound_53 = Int64.(neg @@ shift_left 1L 53)
 
@@ -172,7 +172,7 @@ let upper_bound_53 = Int64.shift_left 1L 53
 
 let map_int53 (i : int64) : testable =
   let clipped = max lower_bound_53 (min i upper_bound_53) in
-  ( module struct
+  (module struct
     type t = int64
 
     let v = clipped
@@ -180,18 +180,18 @@ let map_int53 (i : int64) : testable =
     let ding = Json_encoding.int53
 
     let pp = Crowbar.pp_int64
-  end )
+  end)
 
 let map_range_int a b c : testable =
   let (small, middle, big) =
     match List.sort compare [a; b; c] with
     | [small; middle; big] ->
-        assert (small <= middle);
-        assert (middle <= big);
+        assert (small <= middle) ;
+        assert (middle <= big) ;
         (small, middle, big)
     | _ -> assert false
   in
-  ( module struct
+  (module struct
     type t = int
 
     let v = middle
@@ -201,7 +201,7 @@ let map_range_int a b c : testable =
     let ding = Json_encoding.ranged_int ~minimum:small ~maximum:big name
 
     let pp ppf i = Crowbar.pp ppf "(%d :[%d;%d])" i small big
-  end )
+  end)
 
 let map_range_float a b c : testable =
   if compare a nan = 0 || compare b nan = 0 || compare c nan = 0 then
@@ -211,12 +211,12 @@ let map_range_float a b c : testable =
     let (small, middle, big) =
       match List.sort compare [a; b; c] with
       | [small; middle; big] ->
-          assert (small <= middle);
-          assert (middle <= big);
+          assert (small <= middle) ;
+          assert (middle <= big) ;
           (small, middle, big)
       | _ -> assert false
     in
-    ( module struct
+    (module struct
       type t = float
 
       let v = middle
@@ -226,10 +226,10 @@ let map_range_float a b c : testable =
       let ding = Json_encoding.ranged_float ~minimum:small ~maximum:big name
 
       let pp ppf i = Crowbar.pp ppf "(%f :[%f;%f])" i small big
-    end )
+    end)
 
 let map_bool b : testable =
-  ( module struct
+  (module struct
     type t = bool
 
     let v = b
@@ -237,10 +237,10 @@ let map_bool b : testable =
     let ding = Json_encoding.bool
 
     let pp = Crowbar.pp_bool
-  end )
+  end)
 
 let map_string s : testable =
-  ( module struct
+  (module struct
     type t = string
 
     let v = s
@@ -248,10 +248,10 @@ let map_string s : testable =
     let ding = Json_encoding.string
 
     let pp = Crowbar.pp_string
-  end )
+  end)
 
 let map_bytes s : testable =
-  ( module struct
+  (module struct
     type t = Bytes.t
 
     let v = s
@@ -259,10 +259,10 @@ let map_bytes s : testable =
     let ding = Json_encoding.bytes
 
     let pp fmt b = Crowbar.pp_string fmt (Bytes.to_string b)
-  end )
+  end)
 
 let map_float f : testable =
-  ( module struct
+  (module struct
     type t = float
 
     let v = f
@@ -270,7 +270,7 @@ let map_float f : testable =
     let ding = Json_encoding.float
 
     let pp = Crowbar.pp_float
-  end )
+  end)
 
 (* And now combinators *)
 
@@ -278,13 +278,13 @@ let map_float f : testable =
 let new_name =
   let r = ref 0 in
   fun () ->
-    incr r;
+    incr r ;
     "n" ^ string_of_int !r
 
 let enum (n : int) : testable =
-  assert (0 <= n);
-  assert (n < 3);
-  ( module struct
+  assert (0 <= n) ;
+  assert (n < 3) ;
+  (module struct
     type t = Zilch | Yi | Dos
 
     let v = if n = 0 then Zilch else if n = 1 then Yi else Dos
@@ -297,12 +297,12 @@ let enum (n : int) : testable =
       | Zilch -> Crowbar.pp_string ppf "Zilch"
       | Yi -> Crowbar.pp_string ppf "Yi"
       | Dos -> Crowbar.pp_string ppf "Dos"
-  end )
+  end)
 
 let map_def (t : testable) : testable =
   let module T = (val t) in
   let name = new_name () in
-  ( module struct
+  (module struct
     type t = T.t
 
     let v = T.v
@@ -310,11 +310,11 @@ let map_def (t : testable) : testable =
     let ding = Json_encoding.def name T.ding
 
     let pp = T.pp
-  end )
+  end)
 
 let map_conv_id (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t
 
     let v = T.v
@@ -322,11 +322,11 @@ let map_conv_id (t : testable) : testable =
     let ding = Json_encoding.conv Fun.id Fun.id T.ding
 
     let pp = T.pp
-  end )
+  end)
 
 let map_conv_obj (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t
 
     let v = T.v
@@ -339,11 +339,11 @@ let map_conv_obj (t : testable) : testable =
         (obj2 (req (new_name ()) T.ding) (req (new_name ()) empty))
 
     let pp = T.pp
-  end )
+  end)
 
 let map_conv_obj_dft (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t
 
     let v = T.v
@@ -356,11 +356,11 @@ let map_conv_obj_dft (t : testable) : testable =
         (obj2 (dft (new_name ()) T.ding T.v) (req (new_name ()) empty))
 
     let pp = T.pp
-  end )
+  end)
 
 let map_conv_obj_dft_construct (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t
 
     let v = T.v
@@ -375,11 +375,11 @@ let map_conv_obj_dft_construct (t : testable) : testable =
            (req (new_name ()) empty))
 
     let pp = T.pp
-  end )
+  end)
 
 let map_conv_singleton_union (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t
 
     let v = T.v
@@ -389,11 +389,11 @@ let map_conv_singleton_union (t : testable) : testable =
       union [case T.ding (fun x -> Some x) (fun x -> x)]
 
     let pp = T.pp
-  end )
+  end)
 
 let map_mu_dup_list (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t list
 
     let v = [T.v; T.v]
@@ -416,11 +416,11 @@ let map_mu_dup_list (t : testable) : testable =
     let pp fmt = function
       | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
       | _ -> assert false
-  end )
+  end)
 
 let map_singleton_list (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t list
 
     let v = [T.v]
@@ -430,11 +430,11 @@ let map_singleton_list (t : testable) : testable =
     let pp fmt = function
       | [v] -> Format.fprintf fmt "[%a]" T.pp v
       | _ -> assert false
-  end )
+  end)
 
 let map_dup_list (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t list
 
     let v = [T.v; T.v]
@@ -444,11 +444,11 @@ let map_dup_list (t : testable) : testable =
     let pp fmt = function
       | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
       | _ -> assert false
-  end )
+  end)
 
 let map_some (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t option
 
     let v = Some T.v
@@ -466,11 +466,11 @@ let map_some (t : testable) : testable =
           | None -> Format.fprintf fmt "None"
           | Some v -> Format.fprintf fmt "Some(%a)" T.pp v)
         o
-  end )
+  end)
 
 let map_none (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t option
 
     let v = None
@@ -488,11 +488,11 @@ let map_none (t : testable) : testable =
           | None -> Format.fprintf fmt "None"
           | Some v -> Format.fprintf fmt "Some(%a)" T.pp v)
         o
-  end )
+  end)
 
 let map_list (t : testable) (ts : testable list) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t list
 
     let ding = Json_encoding.list T.ding
@@ -507,11 +507,11 @@ let map_list (t : testable) (ts : testable list) : testable =
         ts
 
     let pp = Crowbar.pp_list T.pp
-  end )
+  end)
 
 let map_array (t : testable) (ts : testable array) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = T.t array
 
     let ding = Json_encoding.array T.ding
@@ -543,11 +543,11 @@ let map_array (t : testable) (ts : testable array) : testable =
              ~pp_sep:(fun ppf () -> Format.fprintf ppf ";@ ")
              T.pp)
           (Array.to_list a)
-  end )
+  end)
 
 let map_obj1 (t1 : testable) : testable =
   let module T1 = (val t1) in
-  ( module struct
+  (module struct
     include T1
 
     let name1 = new_name ()
@@ -555,12 +555,12 @@ let map_obj1 (t1 : testable) : testable =
     let ding = Json_encoding.(obj1 (req name1 T1.ding))
 
     let pp ppf v1 = Crowbar.pp ppf "@[<hv 1>(%s: %a)@]" name1 T1.pp v1
-  end )
+  end)
 
 let map_obj2 (t1 : testable) (t2 : testable) : testable =
   let module T1 = (val t1) in
   let module T2 = (val t2) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t
 
     let v = (T1.v, T2.v)
@@ -573,22 +573,22 @@ let map_obj2 (t1 : testable) (t2 : testable) : testable =
 
     let pp ppf (v1, v2) =
       Crowbar.pp ppf "@[<hv 1>(%s: %a, %s: %a)@]" name1 T1.pp v1 name2 T2.pp v2
-  end )
+  end)
 
 let map_tup1 (t1 : testable) : testable =
   let module T1 = (val t1) in
-  ( module struct
+  (module struct
     include T1
 
     let ding = Json_encoding.tup1 T1.ding
 
     let pp ppf v1 = Crowbar.pp ppf "@[<hv 1>(%a)@]" T1.pp v1
-  end )
+  end)
 
 let map_tup2 (t1 : testable) (t2 : testable) : testable =
   let module T1 = (val t1) in
   let module T2 = (val t2) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t
 
     let ding = Json_encoding.tup2 T1.ding T2.ding
@@ -596,13 +596,13 @@ let map_tup2 (t1 : testable) (t2 : testable) : testable =
     let v = (T1.v, T2.v)
 
     let pp ppf (v1, v2) = Crowbar.pp ppf "@[<hv 1>(%a, %a)@]" T1.pp v1 T2.pp v2
-  end )
+  end)
 
 let map_tup3 (t1 : testable) (t2 : testable) (t3 : testable) : testable =
   let module T1 = (val t1) in
   let module T2 = (val t2) in
   let module T3 = (val t3) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t * T3.t
 
     let ding = Json_encoding.tup3 T1.ding T2.ding T3.ding
@@ -611,7 +611,7 @@ let map_tup3 (t1 : testable) (t2 : testable) (t3 : testable) : testable =
 
     let pp ppf (v1, v2, v3) =
       Crowbar.pp ppf "@[<hv 1>(%a, %a, %a)@]" T1.pp v1 T2.pp v2 T3.pp v3
-  end )
+  end)
 
 let map_tup4 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable) :
     testable =
@@ -619,7 +619,7 @@ let map_tup4 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable) :
   let module T2 = (val t2) in
   let module T3 = (val t3) in
   let module T4 = (val t4) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t * T3.t * T4.t
 
     let ding = Json_encoding.tup4 T1.ding T2.ding T3.ding T4.ding
@@ -638,7 +638,7 @@ let map_tup4 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable) :
         v3
         T4.pp
         v4
-  end )
+  end)
 
 let map_tup5 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
     (t5 : testable) : testable =
@@ -647,7 +647,7 @@ let map_tup5 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
   let module T3 = (val t3) in
   let module T4 = (val t4) in
   let module T5 = (val t5) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t * T3.t * T4.t * T5.t
 
     let ding = Json_encoding.tup5 T1.ding T2.ding T3.ding T4.ding T5.ding
@@ -668,7 +668,7 @@ let map_tup5 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v4
         T5.pp
         v5
-  end )
+  end)
 
 let map_tup6 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
     (t5 : testable) (t6 : testable) : testable =
@@ -678,7 +678,7 @@ let map_tup6 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
   let module T4 = (val t4) in
   let module T5 = (val t5) in
   let module T6 = (val t6) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t * T3.t * T4.t * T5.t * T6.t
 
     let ding =
@@ -702,7 +702,7 @@ let map_tup6 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v5
         T6.pp
         v6
-  end )
+  end)
 
 let map_tup7 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
     (t5 : testable) (t6 : testable) (t7 : testable) : testable =
@@ -713,7 +713,7 @@ let map_tup7 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
   let module T5 = (val t5) in
   let module T6 = (val t6) in
   let module T7 = (val t7) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t * T3.t * T4.t * T5.t * T6.t * T7.t
 
     let ding =
@@ -739,7 +739,7 @@ let map_tup7 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v6
         T7.pp
         v7
-  end )
+  end)
 
 let map_tup8 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
     (t5 : testable) (t6 : testable) (t7 : testable) (t8 : testable) : testable =
@@ -751,7 +751,7 @@ let map_tup8 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
   let module T6 = (val t6) in
   let module T7 = (val t7) in
   let module T8 = (val t8) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t * T3.t * T4.t * T5.t * T6.t * T7.t * T8.t
 
     let ding =
@@ -787,7 +787,7 @@ let map_tup8 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v7
         T8.pp
         v8
-  end )
+  end)
 
 let map_tup9 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
     (t5 : testable) (t6 : testable) (t7 : testable) (t8 : testable)
@@ -801,7 +801,7 @@ let map_tup9 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
   let module T7 = (val t7) in
   let module T8 = (val t8) in
   let module T9 = (val t9) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t * T3.t * T4.t * T5.t * T6.t * T7.t * T8.t * T9.t
 
     let ding =
@@ -840,7 +840,7 @@ let map_tup9 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v8
         T9.pp
         v9
-  end )
+  end)
 
 let map_tup10 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
     (t5 : testable) (t6 : testable) (t7 : testable) (t8 : testable)
@@ -855,7 +855,7 @@ let map_tup10 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
   let module T8 = (val t8) in
   let module T9 = (val t9) in
   let module T10 = (val t10) in
-  ( module struct
+  (module struct
     type t =
       T1.t * T2.t * T3.t * T4.t * T5.t * T6.t * T7.t * T8.t * T9.t * T10.t
 
@@ -898,12 +898,12 @@ let map_tup10 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v9
         T10.pp
         v10
-  end )
+  end)
 
 let map_merge_tups (t1 : testable) (t2 : testable) : testable =
   let module T1 = (val t1) in
   let module T2 = (val t2) in
-  ( module struct
+  (module struct
     type t = T1.t * T2.t
 
     let ding = Json_encoding.merge_tups T1.ding T2.ding
@@ -911,11 +911,11 @@ let map_merge_tups (t1 : testable) (t2 : testable) : testable =
     let v = (T1.v, T2.v)
 
     let pp ppf (v1, v2) = Crowbar.pp ppf "@[<hv 1>(%a, %a)@]" T1.pp v1 T2.pp v2
-  end )
+  end)
 
 let map_schema (t : testable) : testable =
   let module T = (val t) in
-  ( module struct
+  (module struct
     type t = Json_schema.schema
 
     let ding = Json_encoding.any_schema
@@ -923,7 +923,7 @@ let map_schema (t : testable) : testable =
     let v = Json_encoding.schema T.ding
 
     let pp ppf schema = Json_schema.pp ppf schema
-  end )
+  end)
 
 let testable_printer : testable Crowbar.printer =
  fun ppf (t : testable) ->
@@ -1038,12 +1038,12 @@ let pp_jsonm_lexeme fmt = function
   | `Oe -> Format.pp_print_string fmt "}"
 
 let pp_jsonm_lexeme_list fmt jls =
-  Format.pp_print_string fmt "[ ";
+  Format.pp_print_string fmt "[ " ;
   Format.pp_print_list
     ~pp_sep:(fun fmt () -> Format.pp_print_string fmt " ")
     pp_jsonm_lexeme
     fmt
-    jls;
+    jls ;
   Format.pp_print_string fmt " ]"
 
 let test_testable_jsonm_lexeme_seq (testable : testable) =
@@ -1069,16 +1069,16 @@ let test_testable_schema_jsonm_lexeme_seq (testable : testable) =
 
 let () =
   (* roundtrip tests: constructions and destructions are inverses of each other *)
-  Crowbar.add_test ~name:"ezjsonm roundtrips" [gen] test_testable_ezjsonm;
-  Crowbar.add_test ~name:"yojson roundtrips" [gen] test_testable_yojson;
+  Crowbar.add_test ~name:"ezjsonm roundtrips" [gen] test_testable_ezjsonm ;
+  Crowbar.add_test ~name:"yojson roundtrips" [gen] test_testable_yojson ;
   (* sequence construction test: direct sequence construction and construction
      via ezjsonm yield the same result *)
   Crowbar.add_test
     ~name:"->seq ~ ->ezjson->seq"
     [gen]
-    test_testable_jsonm_lexeme_seq;
+    test_testable_jsonm_lexeme_seq ;
   Crowbar.add_test
     ~name:"schema->seq ~ schema->ezjson->seq"
     [gen]
-    test_testable_schema_jsonm_lexeme_seq;
+    test_testable_schema_jsonm_lexeme_seq ;
   ()

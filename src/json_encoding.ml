@@ -55,8 +55,8 @@ let unexpected kind expected =
   Cannot_destruct ([], Unexpected (kind, expected))
 
 type 't repr_agnostic_custom = {
-  write: 'rt. (module Json_repr.Repr with type value = 'rt) -> 't -> 'rt;
-  read: 'rf. (module Json_repr.Repr with type value = 'rf) -> 'rf -> 't;
+  write : 'rt. (module Json_repr.Repr with type value = 'rt) -> 't -> 'rt;
+  read : 'rf. (module Json_repr.Repr with type value = 'rf) -> 'rf -> 't;
 }
 
 (* The GADT definition for encodings. This type must be kept internal
@@ -88,63 +88,63 @@ type _ encoding =
       ('a -> 'b) * ('b -> 'a) * 'b encoding * Json_schema.schema option
       -> 'a encoding
   | Describe : {
-      id: string;
-      title: string option;
-      description: string option;
-      encoding: 'a encoding;
+      id : string;
+      title : string option;
+      description : string option;
+      encoding : 'a encoding;
     }
       -> 'a encoding
   | Mu : {
-      id: string;
-      title: string option;
-      description: string option;
-      self: 'a encoding -> 'a encoding;
+      id : string;
+      title : string option;
+      description : string option;
+      self : 'a encoding -> 'a encoding;
     }
       -> 'a encoding
   | Union : 't case list -> 't encoding
 
 and 'a int_encoding = {
-  int_name: string;
-  of_float: float -> 'a;
-  to_float: 'a -> float;
-  lower_bound: 'a;
-  upper_bound: 'a;
+  int_name : string;
+  of_float : float -> 'a;
+  to_float : 'a -> float;
+  lower_bound : 'a;
+  upper_bound : 'a;
 }
 
-and bounds = {float_name: string; minimum: float; maximum: float}
+and bounds = {float_name : string; minimum : float; maximum : float}
 
 and _ field =
   | Req : {
-      name: string;
-      encoding: 'a encoding;
-      title: string option;
-      description: string option;
+      name : string;
+      encoding : 'a encoding;
+      title : string option;
+      description : string option;
     }
       -> 'a field
   | Opt : {
-      name: string;
-      encoding: 'a encoding;
-      title: string option;
-      description: string option;
+      name : string;
+      encoding : 'a encoding;
+      title : string option;
+      description : string option;
     }
       -> 'a option field
   | Dft : {
-      name: string;
-      encoding: 'a encoding;
-      title: string option;
-      description: string option;
-      default: 'a;
-      construct_default: bool;
+      name : string;
+      encoding : 'a encoding;
+      title : string option;
+      description : string option;
+      default : 'a;
+      construct_default : bool;
     }
       -> 'a field
 
 and 't case =
   | Case : {
-      encoding: 'a encoding;
-      title: string option;
-      description: string option;
-      proj: 't -> 'a option;
-      inj: 'a -> 't;
+      encoding : 'a encoding;
+      title : string option;
+      description : string option;
+      proj : 't -> 'a option;
+      inj : 'a -> 't;
     }
       -> 't case
 
@@ -184,13 +184,13 @@ struct
       | Empty -> fun () -> Repr.repr (`O [])
       | Ignore -> fun () -> Repr.repr (`O [])
       | Option t -> (
-          function None -> Repr.repr `Null | Some v -> construct t v )
+          function None -> Repr.repr `Null | Some v -> construct t v)
       | Constant str -> fun () -> Repr.repr (`String str)
       | Int {int_name; to_float; lower_bound; upper_bound} ->
           fun (i : t) ->
             if i < lower_bound || i > upper_bound then
               invalid_arg
-                ("Json_encoding.construct: " ^ int_name ^ " out of range");
+                ("Json_encoding.construct: " ^ int_name ^ " out of range") ;
             Repr.repr (`Float (to_float i))
       | Bool -> fun (b : t) -> Repr.repr (`Bool b)
       | String -> fun s -> Repr.repr (`String s)
@@ -199,7 +199,7 @@ struct
             "Json_encoding.construct: " ^ float_name ^ " out of range"
           in
           fun float ->
-            if float < minimum || float > maximum then invalid_arg err;
+            if float < minimum || float > maximum then invalid_arg err ;
             Repr.repr (`Float float)
       | Float None -> fun float -> Repr.repr (`Float float)
       | Describe {encoding = t} -> construct t
@@ -222,7 +222,7 @@ struct
       | Obj (Opt {name = n; encoding = t}) -> (
           let w v = construct t v in
           function
-          | None -> Repr.repr (`O []) | Some v -> Repr.repr (`O [(n, w v)]) )
+          | None -> Repr.repr (`O []) | Some v -> Repr.repr (`O [(n, w v)]))
       | Objs (o1, o2) -> (
           let w1 v = construct o1 v in
           let w2 v = construct o2 v in
@@ -232,7 +232,7 @@ struct
               | (`O l1, `O l2) -> Repr.repr (`O (l1 @ l2))
               | (`Null, `Null) | _ ->
                   invalid_arg
-                    "Json_encoding.construct: consequence of bad merge_objs" ) )
+                    "Json_encoding.construct: consequence of bad merge_objs"))
       | Tup t ->
           let w v = construct t v in
           fun v -> Repr.repr (`A [w v])
@@ -245,7 +245,7 @@ struct
               | (`A l1, `A l2) -> Repr.repr (`A (l1 @ l2))
               | _ ->
                   invalid_arg
-                    "Json_encoding.construct: consequence of bad merge_tups" ) )
+                    "Json_encoding.construct: consequence of bad merge_tups"))
       | Union cases ->
           fun v ->
             let rec do_cases = function
@@ -255,7 +255,7 @@ struct
               | Case {encoding; proj} :: rest -> (
                   match proj v with
                   | Some v -> construct encoding v
-                  | None -> do_cases rest )
+                  | None -> do_cases rest)
             in
             do_cases cases
     in
@@ -266,22 +266,22 @@ struct
         fun v ->
           match Repr.view v with
           | `Null -> ()
-          | k -> raise (unexpected k "null") )
+          | k -> raise (unexpected k "null"))
     | Empty -> (
         fun v ->
           match Repr.view v with
           | `O [] -> ()
           | `O [(f, _)] -> raise (Cannot_destruct ([], Unexpected_field f))
-          | k -> raise @@ unexpected k "an empty object" )
-    | Ignore -> ( fun v -> match Repr.view v with _ -> () )
+          | k -> raise @@ unexpected k "an empty object")
+    | Ignore -> ( fun v -> match Repr.view v with _ -> ())
     | Option t -> (
         fun v ->
-          match Repr.view v with `Null -> None | _ -> Some (destruct t v) )
+          match Repr.view v with `Null -> None | _ -> Some (destruct t v))
     | Constant str -> (
         fun v ->
           match Repr.view v with
           | `String s when s = str -> ()
-          | x -> raise @@ unexpected x str )
+          | x -> raise @@ unexpected x str)
     | Int {int_name; of_float; to_float; lower_bound; upper_bound} -> (
         let lower_bound = to_float lower_bound in
         let upper_bound = to_float upper_bound in
@@ -289,31 +289,31 @@ struct
           match Repr.view v with
           | `Float v ->
               let (rest, v) = modf v in
-              ( if rest <> 0. then
-                let exn =
-                  Failure (int_name ^ " cannot have a fractional part")
-                in
-                raise (Cannot_destruct ([], exn)) );
-              ( if v < lower_bound || v > upper_bound then
-                let exn = Failure (int_name ^ " out of range") in
-                raise (Cannot_destruct ([], exn)) );
+              (if rest <> 0. then
+               let exn =
+                 Failure (int_name ^ " cannot have a fractional part")
+               in
+               raise (Cannot_destruct ([], exn))) ;
+              (if v < lower_bound || v > upper_bound then
+               let exn = Failure (int_name ^ " out of range") in
+               raise (Cannot_destruct ([], exn))) ;
               of_float v
-          | k -> raise (unexpected k "number") )
+          | k -> raise (unexpected k "number"))
     | Bool -> (
         fun v ->
           match Repr.view v with
           | `Bool b -> (b : t)
-          | k -> raise (unexpected k "boolean") )
+          | k -> raise (unexpected k "boolean"))
     | String -> (
         fun v ->
           match Repr.view v with
           | `String s -> s
-          | k -> raise (unexpected k "string") )
+          | k -> raise (unexpected k "string"))
     | Float None -> (
         fun v ->
           match Repr.view v with
           | `Float f -> f
-          | k -> raise (unexpected k "float") )
+          | k -> raise (unexpected k "float"))
     | Float (Some {minimum; maximum; float_name}) -> (
         fun v ->
           match Repr.view v with
@@ -322,7 +322,7 @@ struct
                 let exn = Failure (float_name ^ " out of range") in
                 raise (Cannot_destruct ([], exn))
               else f
-          | k -> raise (unexpected k "float") )
+          | k -> raise (unexpected k "float"))
     | Describe {encoding = t} -> destruct t
     | Custom ({read}, _) -> read (module Repr)
     | Conv (_, fto, t, _) -> fun v -> fto (destruct t v)
@@ -340,7 +340,7 @@ struct
                   with Cannot_destruct (path, err) ->
                     raise (Cannot_destruct (`Index i :: path, err)))
                 (Array.of_list cells)
-          | k -> raise @@ unexpected k "array" )
+          | k -> raise @@ unexpected k "array")
     | Obj _ as t -> (
         let d = destruct_obj t in
         fun v ->
@@ -349,8 +349,8 @@ struct
               let (r, rest, ign) = d fields in
               match rest with
               | (field, _) :: _ when not ign -> raise @@ Unexpected_field field
-              | _ -> r )
-          | k -> raise @@ unexpected k "object" )
+              | _ -> r)
+          | k -> raise @@ unexpected k "object")
     | Objs _ as t -> (
         let d = destruct_obj t in
         fun v ->
@@ -359,8 +359,8 @@ struct
               let (r, rest, ign) = d fields in
               match rest with
               | (field, _) :: _ when not ign -> raise @@ Unexpected_field field
-              | _ -> r )
-          | k -> raise @@ unexpected k "object" )
+              | _ -> r)
+          | k -> raise @@ unexpected k "object")
     | Tup _ as t -> (
         let (r, i) = destruct_tup 0 t in
         fun v ->
@@ -371,7 +371,7 @@ struct
               if i <> Array.length cells then
                 raise (Cannot_destruct ([], Bad_array_size (len, i)))
               else r cells
-          | k -> raise @@ unexpected k "array" )
+          | k -> raise @@ unexpected k "array")
     | Tups _ as t -> (
         let (r, i) = destruct_tup 0 t in
         fun v ->
@@ -382,7 +382,7 @@ struct
               if i <> Array.length cells then
                 raise (Cannot_destruct ([], Bad_array_size (len, i)))
               else r cells
-          | k -> raise @@ unexpected k "array" )
+          | k -> raise @@ unexpected k "array")
     | Union cases ->
         fun v ->
           let rec do_cases errs = function
@@ -390,7 +390,7 @@ struct
                 raise (Cannot_destruct ([], No_case_matched (List.rev errs)))
             | Case {encoding; inj} :: rest -> (
                 try inj (destruct encoding v)
-                with err -> do_cases (err :: errs) rest )
+                with err -> do_cases (err :: errs) rest)
           in
           do_cases [] cases
 
@@ -437,7 +437,7 @@ struct
           with
           | Not_found -> raise (Cannot_destruct ([], Missing_field n))
           | Cannot_destruct (path, err) ->
-              raise (Cannot_destruct (`Field n :: path, err)) )
+              raise (Cannot_destruct (`Field n :: path, err)))
     | Obj (Opt {name = n; encoding = t}) -> (
         fun fields ->
           try
@@ -446,7 +446,7 @@ struct
           with
           | Not_found -> (None, fields, false)
           | Cannot_destruct (path, err) ->
-              raise (Cannot_destruct (`Field n :: path, err)) )
+              raise (Cannot_destruct (`Field n :: path, err)))
     | Obj (Dft {name = n; encoding = t; default = d}) -> (
         fun fields ->
           try
@@ -455,7 +455,7 @@ struct
           with
           | Not_found -> (d, fields, false)
           | Cannot_destruct (path, err) ->
-              raise (Cannot_destruct (`Field n :: path, err)) )
+              raise (Cannot_destruct (`Field n :: path, err)))
     | Objs (o1, o2) ->
         let d1 = destruct_obj o1 in
         let d2 = destruct_obj o2 in
@@ -479,7 +479,7 @@ struct
                 try
                   let (r, rest, ign) = destruct_obj encoding fields in
                   (inj r, rest, ign)
-                with err -> do_cases (err :: errs) rest )
+                with err -> do_cases (err :: errs) rest)
           in
           do_cases [] cases
     | _ -> invalid_arg "Json_encoding.destruct: consequence of bad merge_objs"
@@ -527,9 +527,9 @@ let schema ?definitions_path encoding =
   let rec object_schema :
       type t.
       t encoding ->
-      ( (string * element * bool * Json_repr.any option) list
+      ((string * element * bool * Json_repr.any option) list
       * bool
-      * element option )
+      * element option)
       list = function
     | Conv (_, _, o, None) -> object_schema o
     | Empty -> [([], false, None)]
@@ -578,7 +578,7 @@ let schema ?definitions_path encoding =
         let elt = patch_description ?title ?description (schema encoding) in
         match object_schema encoding with
         | [(l, b, _)] -> [(l, b, Some elt)]
-        | l -> l )
+        | l -> l)
     | Conv (_, _, _, Some _) (* FIXME: We could do better *) | _ ->
         invalid_arg "Json_encoding.schema: consequence of bad merge_objs"
   and array_schema : type t. t encoding -> element list = function
@@ -617,13 +617,13 @@ let schema ?definitions_path encoding =
     | Describe {id = name; title; description; encoding} ->
         let schema = patch_description ?title ?description (schema encoding) in
         let (s, def) = add_definition ?definitions_path name schema !sch in
-        sch := fst (merge_definitions (!sch, s));
+        sch := fst (merge_definitions (!sch, s)) ;
         def
     | Custom (_, s) ->
-        sch := fst (merge_definitions (!sch, s));
+        sch := fst (merge_definitions (!sch, s)) ;
         root s
     | Conv (_, _, _, Some s) ->
-        sch := fst (merge_definitions (!sch, s));
+        sch := fst (merge_definitions (!sch, s)) ;
         root s
     | Conv (_, _, t, None) -> schema t
     | Mu {id = name; title; description; self = f} ->
@@ -645,7 +645,7 @@ let schema ?definitions_path encoding =
           patch_description ?title ?description (schema (f fake_self))
         in
         let (nsch, def) = add_definition ?definitions_path name root !sch in
-        sch := nsch;
+        sch := nsch ;
         def
     | Array t -> element (Monomorphic_array (schema t, array_specs))
     | Objs _ as o -> (
@@ -666,7 +666,7 @@ let schema ?definitions_path encoding =
                   with
                   title = elt.title;
                   description = elt.description;
-                } )
+                })
         | more ->
             let elements =
               List.map
@@ -694,7 +694,7 @@ let schema ?definitions_path encoding =
                       })
                 more
             in
-            element (Combine (One_of, elements)) )
+            element (Combine (One_of, elements)))
     | Obj _ as o -> (
         match object_schema o with
         | [(properties, ext, elt)] -> (
@@ -713,7 +713,7 @@ let schema ?definitions_path encoding =
                   with
                   title = elt.title;
                   description = elt.description;
-                } )
+                })
         | more ->
             let elements =
               List.map
@@ -741,7 +741,7 @@ let schema ?definitions_path encoding =
                       })
                 more
             in
-            element (Combine (One_of, elements)) )
+            element (Combine (One_of, elements)))
     | Tup _ as t -> element (Array (array_schema t, array_specs))
     | Tups _ as t -> element (Array (array_schema t, array_specs))
     | Union cases ->
@@ -783,7 +783,7 @@ let mu name ?title ?description self =
     | Some (e_param, e_result) when e_param == e -> e_result
     | _ ->
         let e_result = self e in
-        mem := Some (e, e_result);
+        mem := Some (e, e_result) ;
         e_result
   in
   Mu {id = name; title; description; self}
@@ -806,7 +806,7 @@ let ranged_int ~minimum:lower_bound ~maximum:upper_bound name =
     Sys.word_size = 64
     && (lower_bound < -(1 lsl 30) || upper_bound > (1 lsl 30) - 1)
   then
-    invalid_arg "Json_encoding.ranged_int: bounds out of portable int31 range";
+    invalid_arg "Json_encoding.ranged_int: bounds out of portable int31 range" ;
   Int
     {
       int_name = name;
@@ -832,7 +832,7 @@ let ranged_int53 ~minimum:lower_bound ~maximum:upper_bound name =
     || upper_bound > Int64.shift_left 1L 53
   then
     invalid_arg
-      "Json_encoding.ranged_int53: bounds out of JSON-representable integers";
+      "Json_encoding.ranged_int53: bounds out of JSON-representable integers" ;
   Int
     {
       int_name = name;
@@ -1035,10 +1035,10 @@ let string_enum cases =
   List.iter
     (fun (s, c) ->
       if Hashtbl.mem mcases s then
-        invalid_arg "Json_encoding.string_enum: duplicate case";
-      Hashtbl.add mcases s c;
+        invalid_arg "Json_encoding.string_enum: duplicate case" ;
+      Hashtbl.add mcases s c ;
       Hashtbl.add rcases c s)
-    cases;
+    cases ;
   conv
     (fun v ->
       try Hashtbl.find rcases v
@@ -1114,7 +1114,7 @@ let rec is_nullable : type t. t encoding -> bool = function
 let option : type t. t encoding -> t option encoding =
  fun t ->
   if is_nullable t then
-    invalid_arg "Json_encoding.option: cannot nest nullable encodings";
+    invalid_arg "Json_encoding.option: cannot nest nullable encodings" ;
   Option t
 
 let any_value =
@@ -1379,13 +1379,13 @@ module JsonmLexemeSeq = struct
       | Empty -> fun () -> empty_obj
       | Ignore -> fun () -> empty_obj
       | Option t -> (
-          function None -> null | Some v -> (construct [@ocaml.tailcall]) t v )
+          function None -> null | Some v -> (construct [@ocaml.tailcall]) t v)
       | Constant str -> fun () -> Seq.return (`String str)
       | Int {int_name; to_float; lower_bound; upper_bound} ->
           fun (i : t) ->
             if i < lower_bound || i > upper_bound then
               invalid_arg
-                ("Json_encoding.construct_seq: " ^ int_name ^ " out of range");
+                ("Json_encoding.construct_seq: " ^ int_name ^ " out of range") ;
             Seq.return (`Float (to_float i))
       | Bool -> fun (b : t) -> Seq.return (`Bool b)
       | String -> fun s -> Seq.return (`String s)
@@ -1393,7 +1393,7 @@ module JsonmLexemeSeq = struct
           fun float ->
             if float < minimum || float > maximum then
               invalid_arg
-                ("Json_encoding.construct_seq: " ^ float_name ^ " out of range");
+                ("Json_encoding.construct_seq: " ^ float_name ^ " out of range") ;
             Seq.return (`Float float)
       | Float None -> fun float -> Seq.return (`Float float)
       | Describe {encoding = t} -> fun v -> (construct [@ocaml.tailcall]) t v
@@ -1405,7 +1405,7 @@ module JsonmLexemeSeq = struct
           fun v -> (construct [@ocaml.tailcall]) t (ffrom v)
       | Mu {self} as enc -> fun v -> (construct [@ocaml.tailcall]) (self enc) v
       | Array t -> (
-          function [||] -> empty_arr | vs -> `As +< construct_arr t vs +> `Ae )
+          function [||] -> empty_arr | vs -> `As +< construct_arr t vs +> `Ae)
       | Obj (Req {name = n; encoding = t}) ->
           fun v -> `Os +< construct_named n t v +> `Oe
       | Obj (Dft {name = n; encoding = t; default = d; construct_default}) ->
@@ -1417,7 +1417,7 @@ module JsonmLexemeSeq = struct
             else empty_obj
       | Obj (Opt {name = n; encoding = t}) -> (
           function
-          | None -> empty_obj | Some v -> `Os +< construct_named n t v +> `Oe )
+          | None -> empty_obj | Some v -> `Os +< construct_named n t v +> `Oe)
       | Objs (o1, o2) ->
           (* For the objects inside an [Objs] we go to a different state of
              the state-machine: we call the entry-point [construct_obj].
@@ -1444,7 +1444,7 @@ module JsonmLexemeSeq = struct
               | Case {encoding; proj} :: rest -> (
                   match proj v with
                   | Some v -> (construct [@ocaml.tailcall]) encoding v
-                  | None -> do_cases rest )
+                  | None -> do_cases rest)
             in
             do_cases cases
     and construct_arr : type t. t encoding -> t array -> jsonm_lexeme Seq.t =
@@ -1466,7 +1466,7 @@ module JsonmLexemeSeq = struct
             in
             if inc_default || v <> d then construct_named n t v else Seq.empty
       | Obj (Opt {name = n; encoding = t}) -> (
-          function None -> Seq.empty | Some v -> construct_named n t v )
+          function None -> Seq.empty | Some v -> construct_named n t v)
       | Obj _ ->
           .
           (* asserting we have covered all Obj cases to ensure that it cannot
@@ -1487,7 +1487,7 @@ module JsonmLexemeSeq = struct
               | Case {encoding; proj} :: rest -> (
                   match proj v with
                   | Some v -> construct_obj encoding v
-                  | None -> do_cases rest )
+                  | None -> do_cases rest)
             in
             do_cases cases
       | Custom ({write}, _) -> (
@@ -1499,7 +1499,7 @@ module JsonmLexemeSeq = struct
             | `O kvs -> jsonm_lexeme_seq_of_ezjson_kvs kvs
             | `A _ | `Bool _ | `Float _ | `String _ | `Null ->
                 invalid_arg
-                  "Json_encoding.construct_seq: consequence of bad merge_objs" )
+                  "Json_encoding.construct_seq: consequence of bad merge_objs")
       | _ ->
           (* In all other cases we raise a runtime exception. This is similar
              to the way vanilla [construct] handles recursive calls returning
@@ -1520,7 +1520,7 @@ module JsonmLexemeSeq = struct
             | `A vs -> jsonm_lexeme_seq_of_ezjson_vs vs
             | `O _ | `Bool _ | `Float _ | `String _ | `Null ->
                 invalid_arg
-                  "Json_encoding.construct_seq: consequence of bad merge_tups" )
+                  "Json_encoding.construct_seq: consequence of bad merge_tups")
       | _ ->
           invalid_arg
             "Json_encoding.construct_seq: consequence of bad merge_tups"

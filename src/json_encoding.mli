@@ -631,8 +631,8 @@ module Make (Repr : Json_repr.Repr) : S with type repr_value = Repr.value
            Repr_f.repr `Null in
        { read ; write } ]} *)
 type 't repr_agnostic_custom = {
-  write: 'rt. (module Json_repr.Repr with type value = 'rt) -> 't -> 'rt;
-  read: 'rf. (module Json_repr.Repr with type value = 'rf) -> 'rf -> 't;
+  write : 'rt. (module Json_repr.Repr with type value = 'rt) -> 't -> 'rt;
+  read : 'rf. (module Json_repr.Repr with type value = 'rf) -> 'rf -> 't;
 }
 
 (** A custom encoding, using custom encoders and a schema. *)

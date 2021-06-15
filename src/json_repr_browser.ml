@@ -37,7 +37,7 @@ module Repr = struct
     | `Null -> Obj.magic Js.null (* Oh, nom nom nom! *)
     | `O fields ->
         let obj = Js.Unsafe.new_obj (Js.Unsafe.pure_js_expr "Object") [||] in
-        List.iter (fun (n, v) -> Js.Unsafe.set obj (Js.string n) v) fields;
+        List.iter (fun (n, v) -> Js.Unsafe.set obj (Js.string n) v) fields ;
         obj
     | `A cells -> Js.Unsafe.coerce (Js.array (Array.of_list cells))
 
@@ -76,14 +76,14 @@ let js_stringify ?indent obj =
   Js.Unsafe.meth_call
     (Js.Unsafe.variable "JSON")
     "stringify"
-    ( match indent with
+    (match indent with
     | None -> [|Js.Unsafe.inject obj|]
     | Some indent ->
         [|
           Js.Unsafe.inject obj;
           Js.Unsafe.inject Js.null;
           Js.Unsafe.inject indent;
-        |] )
+        |])
 
 let parse_js_string jsstr =
   Js.Unsafe.meth_call

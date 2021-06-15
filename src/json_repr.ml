@@ -52,8 +52,8 @@ let repr_uid () = ref None
 
 let eq_repr_uid : 'a -> 'a repr_uid -> 'b repr_uid -> 'b option =
  fun a ta tb ->
-  tb := None;
-  ta := Some a;
+  tb := None ;
+  ta := Some a ;
   !tb
 
 module type Repr = sig
@@ -143,7 +143,7 @@ let convert :
       conv v
 
 let pp_string ppf s =
-  Format.fprintf ppf "\"";
+  Format.fprintf ppf "\"" ;
   for i = 0 to String.length s - 1 do
     match s.[i] with
     | '\"' -> Format.fprintf ppf "\\\""
@@ -154,7 +154,7 @@ let pp_string ppf s =
     | '\\' -> Format.fprintf ppf "\\\\"
     | '\x00' .. '\x1F' as c -> Format.fprintf ppf "\\u%04x" (Char.code c)
     | c -> Format.fprintf ppf "%c" c
-  done;
+  done ;
   Format.fprintf ppf "\""
 
 let pp ?(compact = false) ?(pp_string = pp_string) (type value)
