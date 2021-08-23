@@ -3,7 +3,7 @@
  (public_name json-data-encoding)
  (flags
   (:standard -w -9))
- (modules json_encoding json_query json_repr json_schema)
+ (modules list_map json_encoding json_query json_repr json_schema)
  (synopsis "Type-safe encoding to and decoding from JSON")
  (libraries uri)
  (wrapped false))

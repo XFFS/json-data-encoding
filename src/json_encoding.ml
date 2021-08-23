@@ -423,7 +423,7 @@ struct
    fun t ->
     let rec assoc acc n = function
       | [] -> raise Not_found
-      | (f, v) :: rest when n = f -> (v, acc @ rest)
+      | (f, v) :: rest when n = f -> (v, List.rev_append acc rest)
       | oth :: rest -> assoc (oth :: acc) n rest
     in
     match t with
@@ -510,19 +510,18 @@ let patch_description ?title ?description (elt : Json_schema.element) =
 let schema ?definitions_path encoding =
   let open Json_schema in
   let sch = ref any in
-  let rec prod l1 l2 =
-    match l1 with
-    | [] -> []
-    | (l1, b1, e1) :: es ->
-        List.map
+  let prod l1 l2 =
+    List.concat_map
+      (fun (l1, b1, e1) ->
+        List_map.map_pure
           (fun (l2, b2, e2) ->
             ( l1 @ l2,
               b1 || b2,
               match (e1, e2) with
               | (Some e, _) | (_, Some e) -> Some e
               | _ -> None ))
-          l2
-        @ prod es l2
+          l2)
+      l1
   in
   let rec object_schema :
       type t.
@@ -565,14 +564,13 @@ let schema ?definitions_path encoding =
     | Objs (o1, o2) -> prod (object_schema o1) (object_schema o2)
     | Union [] -> invalid_arg "Json_encoding.schema: empty union in object"
     | Union cases ->
-        List.flatten
-          (List.map
-             (fun (Case {encoding = o; title; description}) ->
-               let elt = patch_description ?title ?description (schema o) in
-               match object_schema o with
-               | [(l, b, _)] -> [(l, b, Some elt)]
-               | l -> l)
-             cases)
+        List.concat_map
+          (fun (Case {encoding = o; title; description}) ->
+            let elt = patch_description ?title ?description (schema o) in
+            match object_schema o with
+            | [(l, b, _)] -> [(l, b, Some elt)]
+            | l -> l)
+          cases
     | Mu {self} as enc -> object_schema (self enc)
     | Describe {title; description; encoding} -> (
         let elt = patch_description ?title ?description (schema encoding) in
@@ -669,7 +667,7 @@ let schema ?definitions_path encoding =
                 })
         | more ->
             let elements =
-              List.map
+              List_map.map_pure
                 (fun (properties, ext, elt) ->
                   let additional_properties =
                     if ext then Some (element Any) else None
@@ -716,7 +714,7 @@ let schema ?definitions_path encoding =
                 })
         | more ->
             let elements =
-              List.map
+              List_map.map_pure
                 (fun (properties, ext, elt) ->
                   let additional_properties =
                     if ext then Some (element Any) else None
@@ -747,7 +745,7 @@ let schema ?definitions_path encoding =
     | Union cases ->
         (* FIXME: smarter merge *)
         let elements =
-          List.map
+          List_map.map_pure
             (fun (Case {encoding; title; description}) ->
               patch_description ?title ?description (schema encoding))
             cases
@@ -1021,7 +1019,7 @@ let string_enum cases =
   let schema =
     let specs = Json_schema.string_specs in
     let enum =
-      List.map
+      List_map.map_pure
         (fun (s, _) -> Json_repr.(repr_to_any (module Ezjsonm)) (`String s))
         cases
     in
@@ -1030,7 +1028,21 @@ let string_enum cases =
   let len = List.length cases in
   let mcases = Hashtbl.create len and rcases = Hashtbl.create len in
   let cases_str =
-    String.concat " " (List.map (fun x -> "'" ^ fst x ^ "'") cases)
+    match cases with
+    | [] -> ""
+    | c :: cs ->
+        let b = Buffer.create 128 in
+        Buffer.add_char b '\'' ;
+        Buffer.add_string b (fst c) ;
+        Buffer.add_char b '\'' ;
+        List.iter
+          (fun c ->
+            Buffer.add_char b ' ' ;
+            Buffer.add_char b '\'' ;
+            Buffer.add_string b (fst c) ;
+            Buffer.add_char b '\'')
+          cs ;
+        Buffer.contents b
   in
   List.iter
     (fun (s, c) ->
@@ -1070,7 +1082,10 @@ let assoc : type t. t encoding -> (string * t) list encoding =
  fun t ->
   Ezjsonm_encoding.custom
     (fun l ->
-      `O (List.map (fun (n, v) -> (n, Ezjsonm_encoding.construct t v)) l))
+      `O
+        (List_map.map_pure
+           (fun (n, v) -> (n, Ezjsonm_encoding.construct t v))
+           l))
     (fun v ->
       match v with
       | `O l ->
@@ -1079,7 +1094,7 @@ let assoc : type t. t encoding -> (string * t) list encoding =
             with Cannot_destruct (p, exn) ->
               raise (Cannot_destruct (`Field n :: p, exn))
           in
-          List.map (fun (n, v) -> (n, destruct n t v)) l
+          List_map.map_pure (fun (n, v) -> (n, destruct n t v)) l
       | #Json_repr.ezjsonm as k -> raise (unexpected k "asssociative object"))
     ~schema:
       (let s = schema t in

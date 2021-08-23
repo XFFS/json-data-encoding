@@ -102,6 +102,9 @@ and string_specs = {
   str_format : string option;
 }
 
+let sort_assoc_list_by_string_key kvs =
+  List.sort (fun (a, _) (b, _) -> String.compare a b) kvs
+
 (* box an element kind without any optional field *)
 let element kind =
   {
@@ -116,16 +119,14 @@ let element kind =
 
 (*-- equality --------------------------------------------------------------*)
 
-let option_map f = function None -> None | Some v -> Some (f v)
-
 let rec eq_element a b =
   a == b
   || a.title = b.title
      && a.description = b.description
-     && option_map Json_repr.from_any a.default
-        = option_map Json_repr.from_any b.default
-     && option_map (List.map Json_repr.from_any) a.enum
-        = option_map (List.map Json_repr.from_any) b.enum
+     && Option.map Json_repr.from_any a.default
+        = Option.map Json_repr.from_any b.default
+     && Option.map (List_map.map_pure Json_repr.from_any) a.enum
+        = Option.map (List_map.map_pure Json_repr.from_any) b.enum
      && eq_kind a.kind b.kind && a.format = b.format && a.id = b.id
 
 and eq_kind a b =
@@ -154,31 +155,33 @@ and eq_kind a b =
   | _ -> false
 
 and eq_object_specs a b =
-  a.min_properties = b.min_properties
-  && a.max_properties = b.max_properties
+  Int.equal a.min_properties b.min_properties
+  && Option.equal Int.equal a.max_properties b.max_properties
+  && List.compare_lengths a.property_dependencies b.property_dependencies = 0
   && List.sort compare a.property_dependencies
      = List.sort compare b.property_dependencies
-  && (match (a.additional_properties, b.additional_properties) with
-     | (Some a, Some b) -> eq_element a b
-     | (None, None) -> true
-     | (_, _) -> false)
-  && List.length a.pattern_properties = List.length b.pattern_properties
+  && Option.equal eq_element a.additional_properties b.additional_properties
+  && List.compare_lengths a.pattern_properties b.pattern_properties = 0
   && List.for_all2
-       (fun (na, ea) (nb, eb) -> na = nb && eq_element ea eb)
-       (List.sort (fun (x, _) (y, _) -> compare x y) a.pattern_properties)
-       (List.sort (fun (x, _) (y, _) -> compare x y) b.pattern_properties)
-  && List.length a.schema_dependencies = List.length b.schema_dependencies
+       (fun (na, ea) (nb, eb) -> String.equal na nb && eq_element ea eb)
+       (sort_assoc_list_by_string_key a.pattern_properties)
+       (sort_assoc_list_by_string_key b.pattern_properties)
+  && List.compare_lengths a.schema_dependencies b.schema_dependencies = 0
   && List.for_all2
-       (fun (na, ea) (nb, eb) -> na = nb && eq_element ea eb)
-       (List.sort (fun (x, _) (y, _) -> compare x y) a.schema_dependencies)
-       (List.sort (fun (x, _) (y, _) -> compare x y) b.schema_dependencies)
-  && List.length a.properties = List.length b.properties
+       (fun (na, ea) (nb, eb) -> String.equal na nb && eq_element ea eb)
+       (sort_assoc_list_by_string_key a.schema_dependencies)
+       (sort_assoc_list_by_string_key b.schema_dependencies)
+  && List.compare_lengths a.properties b.properties = 0
   && List.for_all2
        (fun (na, ea, ra, da) (nb, eb, rb, db) ->
-         na = nb && eq_element ea eb && ra = rb
-         && option_map Json_repr.from_any da = option_map Json_repr.from_any db)
-       (List.sort (fun (x, _, _, _) (y, _, _, _) -> compare x y) a.properties)
-       (List.sort (fun (x, _, _, _) (y, _, _, _) -> compare x y) b.properties)
+         String.equal na nb && eq_element ea eb && ra = rb
+         && Option.map Json_repr.from_any da = Option.map Json_repr.from_any db)
+       (List.sort
+          (fun (x, _, _, _) (y, _, _, _) -> String.compare x y)
+          a.properties)
+       (List.sort
+          (fun (x, _, _, _) (y, _, _, _) -> String.compare x y)
+          b.properties)
 
 and eq_array_specs a b =
   a.min_items = b.min_items && a.max_items = b.max_items
@@ -616,7 +619,7 @@ module Make (Repr : Json_repr.Repr) = struct
                 specs.properties
             in
             let properties =
-              List.map
+              List_map.map_pure
                 (fun (n, elt, _, _) -> (n, obj (format_element elt)))
                 specs.properties
             in
@@ -628,7 +631,7 @@ module Make (Repr : Json_repr.Repr) = struct
                 specs.pattern_properties
                 (fun fs ->
                   `O
-                    (List.map
+                    (List_map.map_pure
                        (fun (n, elt) -> (n, obj (format_element elt)))
                        fs))
             @ set_if_neq
@@ -646,7 +649,7 @@ module Make (Repr : Json_repr.Repr) = struct
                 specs.schema_dependencies
                 (fun fs ->
                   `O
-                    (List.map
+                    (List_map.map_pure
                        (fun (n, elt) -> (n, obj (format_element elt)))
                        fs))
             @ set_if_cons
@@ -655,9 +658,9 @@ module Make (Repr : Json_repr.Repr) = struct
                 (fun fs ->
                   let property_dependencies =
                     let strings ls =
-                      List.map (fun s -> Repr.repr (`String s)) ls
+                      List_map.map_pure (fun s -> Repr.repr (`String s)) ls
                     in
-                    List.map
+                    List_map.map_pure
                       (fun (n, ls) -> (n, Repr.repr (`A (strings ls))))
                       fs
                   in
@@ -666,7 +669,8 @@ module Make (Repr : Json_repr.Repr) = struct
             set_always "type" (`String "array")
             @ set_always
                 "items"
-                (`A (List.map (fun elt -> obj (format_element elt)) elts))
+                (`A
+                  (List_map.map_pure (fun elt -> obj (format_element elt)) elts))
             @ set_if_neq "minItems" specs.min_items 0 (fun i ->
                   `Float (float i))
             @ set_if_some "maxItems" specs.max_items (fun i -> `Float (float i))
@@ -693,7 +697,8 @@ module Make (Repr : Json_repr.Repr) = struct
             in
             set_always
               (combinator c)
-              (`A (List.map (fun elt -> obj (format_element elt)) elts))
+              (`A
+                (List_map.map_pure (fun elt -> obj (format_element elt)) elts))
         | Def_ref path ->
             set_always "$ref" (`String ("#" ^ json_pointer_of_path path))
         | Id_ref name -> set_always "$ref" (`String ("#" ^ name))
@@ -751,7 +756,7 @@ module Make (Repr : Json_repr.Repr) = struct
       @ set_if_some "default" default (fun j ->
             Repr.view (Json_repr.any_to_repr (module Repr) j))
       @ set_if_some "enum" enum (fun js ->
-            `A (List.map (Json_repr.any_to_repr (module Repr)) js))
+            `A (List_map.map_pure (Json_repr.any_to_repr (module Repr)) js))
       @ set_if_some "format" format (fun s -> `String s)
     in
     List.fold_left
@@ -936,7 +941,7 @@ module Make (Repr : Json_repr.Repr) = struct
                 | k :: _ ->
                     raise (at_field "type" @@ at_index i @@ unexpected k "type")
               in
-              items 0 [] (List.map Repr.view l)
+              items 0 [] (List_map.map_pure Repr.view l)
           | Some k ->
               raise
                 (at_field "type" @@ unexpected k "type, type array or operator")
@@ -996,9 +1001,9 @@ module Make (Repr : Json_repr.Repr) = struct
           | None -> None
         in
         let enum =
-          match opt_array_field json "enum" with
-          | Some v -> Some (List.map (Json_repr.repr_to_any (module Repr)) v)
-          | None -> None
+          Option.map
+            (fun v -> List_map.map_pure (Json_repr.repr_to_any (module Repr)) v)
+            (opt_array_field json "enum")
         in
         let format = opt_string_field json "format" in
         (* TODO: check format ? *)
@@ -1006,9 +1011,7 @@ module Make (Repr : Json_repr.Repr) = struct
         let as_one_of = as_nary "oneOf" One_of [] in
         let as_any_of = as_nary "anyOf" Any_of [] in
         let all = [as_kind; as_ref; as_not; as_one_of; as_any_of] in
-        let cases =
-          List.flatten (List.map (function None -> [] | Some e -> [e]) all)
-        in
+        let cases = List.filter_map (fun x -> x) all in
         let kind =
           match as_nary "allOf" All_of cases with
           | None -> Any (* no type, ref or logical combination found *)
@@ -1156,7 +1159,7 @@ module Make (Repr : Json_repr.Repr) = struct
                         (at_field "required" @@ at_index i
                        @@ unexpected k "string")
                 in
-                items 0 [] (List.map Repr.view l)
+                items 0 [] (List_map.map_pure Repr.view l)
           in
           let properties =
             match opt_field_view json "properties" with
@@ -1203,7 +1206,7 @@ module Make (Repr : Json_repr.Repr) = struct
                               @@ at_field n @@ at_index j
                               @@ unexpected k "string")
                       in
-                      strings 0 [] (List.map Repr.view l)
+                      strings 0 [] (List_map.map_pure Repr.view l)
                   | (n, k) :: _ ->
                       raise
                         (at_field "propertyDependencies"
@@ -1211,7 +1214,7 @@ module Make (Repr : Json_repr.Repr) = struct
                         @@ unexpected k "string array")
                   | [] -> List.rev sacc
                 in
-                sets [] (List.map (fun (n, v) -> (n, Repr.view v)) l)
+                sets [] (List_map.map_pure (fun (n, v) -> (n, Repr.view v)) l)
             | Some k ->
                 raise (at_field "propertyDependencies" @@ unexpected k "object")
           in
@@ -1256,12 +1259,11 @@ module Make (Repr : Json_repr.Repr) = struct
     (* force the addition of everything inside /definitions *)
     (match Repr.view (query [`Field "definitions"] json) with
     | `O all ->
-        let all =
-          List.map
-            (fun (n, _) -> Uri.of_string ("#" ^ definitions_path ^ n))
-            all
-        in
-        List.iter (fun uri -> collect_definition uri |> ignore) all
+        List.iter
+          (fun (n, _) ->
+            let uri = Uri.of_string ("#" ^ definitions_path ^ n) in
+            ignore (collect_definition uri))
+          all
     | _ -> ()
     | exception Not_found -> ()) ;
     (* check the domain of IDs *)

@@ -144,15 +144,15 @@ module Make (Repr : Json_repr.Repr) = struct
 
   (*-- updates ---------------------------------------------------------------*)
 
-  let sort_fields = List.sort (fun (l, _) (r, _) -> compare l r)
+  let sort_fields = List.sort (fun (l, _) (r, _) -> String.compare l r)
 
   let equals l r =
     let rec canon v =
       match Repr.view v with
       | `O l ->
           Repr.repr
-            (`O (List.map (fun (n, o) -> (n, canon o)) l |> sort_fields))
-      | `A l -> Repr.repr (`A (List.map canon l))
+            (`O (List.rev_map (fun (n, o) -> (n, canon o)) l |> sort_fields))
+      | `A l -> Repr.repr (`A (List.rev_map canon l))
       | _ -> v
     in
     canon l = canon r
@@ -199,9 +199,7 @@ module Make (Repr : Json_repr.Repr) = struct
       else nulls (Repr.repr `Null :: acc) (pred n) last
     in
     let rec insert ?root path =
-      let root =
-        match root with None -> None | Some repr -> Some (Repr.view repr)
-      in
+      let root = Option.map Repr.view root in
       match (path, root) with
       (* create objects *)
       | (`Field n :: rempath, None) -> Repr.repr (`O [(n, insert rempath)])
@@ -223,10 +221,14 @@ module Make (Repr : Json_repr.Repr) = struct
           Repr.repr (`A (List.rev_append (List.rev cells) [insert rempath]))
       (* multiple insertions *)
       | (`Star :: rempath, Some (`A cells)) ->
-          Repr.repr (`A (List.map (fun root -> insert ~root rempath) cells))
+          Repr.repr
+            (`A (List_map.map_pure (fun root -> insert ~root rempath) cells))
       | (`Star :: rempath, Some (`O fields)) ->
           Repr.repr
-            (`O (List.map (fun (n, root) -> (n, insert ~root rempath)) fields))
+            (`O
+              (List_map.map_pure
+                 (fun (n, root) -> (n, insert ~root rempath))
+                 fields))
       | ([`Star], Some root) -> merge path value (Repr.repr root)
       (* FIXME: make explicit unhandled cases *)
       | (_, Some _) -> raise (Cannot_merge (revpath path))
