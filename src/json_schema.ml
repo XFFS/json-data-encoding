@@ -624,7 +624,7 @@ module Make (Repr : Json_repr.Repr) = struct
                 specs.properties
             in
             set_always "type" (`String "object")
-            @ set_always "properties" (`O properties)
+            @ set_if_cons "properties" properties (fun l -> `O l)
             @ set_if_cons "required" required (fun l -> `A l)
             @ set_if_cons
                 "patternProperties"
