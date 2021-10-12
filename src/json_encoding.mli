@@ -362,7 +362,8 @@ val list : 'a encoding -> 'a list encoding
 val seq : 'a encoding -> 'a Seq.t encoding
 
 (** An encoding of an OCaml associative list by a JSON object. *)
-val assoc : 'a encoding -> (string * 'a) list encoding
+val assoc :
+  ?definitions_path:string -> 'a encoding -> (string * 'a) list encoding
 
 (** An encoding of an OCaml value by a singleton array. *)
 val tup1 : 'f1 encoding -> 'f1 encoding

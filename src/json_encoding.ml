@@ -1165,8 +1165,10 @@ let string_enum cases =
 let def id ?title ?description encoding =
   Describe {id; title; description; encoding}
 
-let assoc : type t. t encoding -> (string * t) list encoding =
- fun t ->
+let assoc :
+    type t. ?definitions_path:string -> t encoding -> (string * t) list encoding
+    =
+ fun ?definitions_path t ->
   Ezjsonm_encoding.custom
     (fun l ->
       `O
@@ -1184,7 +1186,7 @@ let assoc : type t. t encoding -> (string * t) list encoding =
           List_map.map_pure (fun (n, v) -> (n, destruct n t v)) l
       | #Json_repr.ezjsonm as k -> raise (unexpected k "asssociative object"))
     ~schema:
-      (let s = schema t in
+      (let s = schema ?definitions_path t in
        Json_schema.(
          update
            (element
