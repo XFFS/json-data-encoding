@@ -1,3 +1,3 @@
-(lang dune 1.7)
+(lang dune 2.0)
 (name json-data-encoding)
-(using fmt 1.1)
+(formatting (enabled_for dune ocaml))

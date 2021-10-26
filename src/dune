@@ -6,6 +6,7 @@
  (modules list_map json_encoding json_query json_repr json_schema)
  (synopsis "Type-safe encoding to and decoding from JSON")
  (libraries uri)
+ (js_of_ocaml)
  (wrapped false))
 
 (library
@@ -16,6 +17,7 @@
  (modules json_repr_bson)
  (synopsis "BSON representation of JSON documents")
  (libraries json-data-encoding ocplib-endian)
+ (js_of_ocaml)
  (wrapped false))
 
 (library
@@ -26,4 +28,5 @@
  (modules json_repr_browser)
  (synopsis "Native browser representation of JSON documents")
  (libraries json-data-encoding js_of_ocaml)
+ (js_of_ocaml)
  (wrapped false))
