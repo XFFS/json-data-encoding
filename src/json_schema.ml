@@ -133,14 +133,14 @@ and eq_kind a b =
   match (a, b) with
   | (Object aa, Object ab) -> eq_object_specs aa ab
   | (Array (esa, sa), Array (esb, sb)) ->
-      List.length esa = List.length esb
+      List.compare_lengths esa esb = 0
       && List.for_all2 eq_element esa esb
       && eq_array_specs sa sb
   | (Monomorphic_array (ea, sa), Monomorphic_array (eb, sb)) ->
       eq_element ea eb && eq_array_specs sa sb
   | (Combine (ca, esa), Combine (cb, esb)) ->
       ca = cb
-      && List.length esa = List.length esb
+      && List.compare_lengths esa esb = 0
       && List.for_all2 eq_element esa esb
   | (Def_ref pa, Def_ref pb) -> pa = pb
   | (Id_ref ra, Id_ref rb) -> ra = rb
@@ -223,7 +223,7 @@ let pp_num ppf num =
         false
         [0.; 1.; -1.; 2.; -2.]
     in
-    if already_printed then () else Format.fprintf ppf "%f" abs_num
+    if not already_printed then Format.fprintf ppf "%f" abs_num
 
 let pp_numeric_specs ppf {multiple_of; minimum; maximum} =
   Format.fprintf
