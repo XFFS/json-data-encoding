@@ -100,8 +100,15 @@ val jsonm_lexeme_seq_of_ezjson : Json_repr.ezjsonm -> jsonm_lexeme Seq.t
     May raise [Cannot_destruct].
 
     This function works with JSON data represented in the {!Json_repr.ezjsonm}
-    format. See functor {!Make} for using another representation. *)
-val destruct : 't encoding -> Json_repr.ezjsonm -> 't
+    format. See functor {!Make} for using another representation.
+
+      @param [bson_relaxation] (default to [false]) works around a limitation of
+      the BSON format. Specifically, in BSON, arrays are represented as
+      number-indexed objects. When nested deep inside a value, arrays and
+      objects are tagged to distinguish them, but at the top-level. However, at
+      the top-level this is not the case. As a result, it is impossible to
+      disintguish a naked array from a naked object. *)
+val destruct : ?bson_relaxation:bool -> 't encoding -> Json_repr.ezjsonm -> 't
 
 (** {2 JSON type combinators for simple immediates} *)
 
@@ -594,7 +601,7 @@ module type S = sig
     repr_value
 
   (** Same as {!destruct} for a custom JSON representation. *)
-  val destruct : 't encoding -> repr_value -> 't
+  val destruct : ?bson_relaxation:bool -> 't encoding -> repr_value -> 't
 
   (** Same as {!custom} for a custom JSON representation. *)
   val custom :

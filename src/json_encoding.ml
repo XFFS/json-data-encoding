@@ -159,7 +159,7 @@ module type S = sig
     't ->
     repr_value
 
-  val destruct : 't encoding -> repr_value -> 't
+  val destruct : ?bson_relaxation:bool -> 't encoding -> repr_value -> 't
 
   val custom :
     ('t -> repr_value) ->
@@ -261,7 +261,24 @@ struct
     in
     construct enc v
 
-  let rec destruct : type t. t encoding -> Repr.value -> t = function
+  (* Used for bson_relaxation to convert objs to arrs *)
+  let maybe_array_in_disguise fs =
+    let rec is_maybe_array_in_disguise rev_acc index = function
+      | [] -> Some (List.rev rev_acc)
+      | (s, v) :: o ->
+          if string_of_int index = s then
+            is_maybe_array_in_disguise (v :: rev_acc) (index + 1) o
+          else None
+    in
+    is_maybe_array_in_disguise [] 0 fs
+
+  (* NOTE: bson relaxation is only an issue at top-level (see comment in
+     interface). Hence, we set it to false on recursive calls that are actually
+     nested, no matter its value. *)
+  let rec destruct :
+      type t. bson_relaxation:bool -> t encoding -> Repr.value -> t =
+   fun ~bson_relaxation enc ->
+    match enc with
     | Null -> (
         fun v ->
           match Repr.view v with
@@ -276,7 +293,9 @@ struct
     | Ignore -> ( fun v -> match Repr.view v with _ -> ())
     | Option t -> (
         fun v ->
-          match Repr.view v with `Null -> None | _ -> Some (destruct t v))
+          match Repr.view v with
+          | `Null -> None
+          | _ -> Some (destruct ~bson_relaxation t v))
     | Constant str -> (
         fun v ->
           match Repr.view v with
@@ -323,23 +342,31 @@ struct
                 raise (Cannot_destruct ([], exn))
               else f
           | k -> raise (unexpected k "float"))
-    | Describe {encoding = t} -> destruct t
+    | Describe {encoding = t} -> destruct ~bson_relaxation t
     | Custom ({read}, _) -> read (module Repr)
-    | Conv (_, fto, t, _) -> fun v -> fto (destruct t v)
-    | Mu {self} as enc -> destruct (self enc)
+    | Conv (_, fto, t, _) -> fun v -> fto (destruct ~bson_relaxation t v)
+    | Mu {self} as enc -> destruct ~bson_relaxation (self enc)
     | Array t -> (
+        let array_of_cells cells =
+          Array.mapi
+            (fun i cell ->
+              try destruct ~bson_relaxation:false t cell
+              with Cannot_destruct (path, err) ->
+                raise (Cannot_destruct (`Index i :: path, err)))
+            (Array.of_list cells)
+        in
         fun v ->
           match Repr.view v with
           | `O [] ->
-              (* Weak `Repr`s like BSON don't know the difference  *)
+              (* For backwards compatibility, we handle [[]] with the
+                 [bson_relaxation] semantic even if it is not set. *)
               [||]
-          | `A cells ->
-              Array.mapi
-                (fun i cell ->
-                  try destruct t cell
-                  with Cannot_destruct (path, err) ->
-                    raise (Cannot_destruct (`Index i :: path, err)))
-                (Array.of_list cells)
+          | `O o when bson_relaxation -> (
+              (* Weak `Repr`s like BSON don't know the difference *)
+              match maybe_array_in_disguise o with
+              | Some cells -> array_of_cells cells
+              | None -> raise @@ unexpected (`O o) "array")
+          | `A cells -> array_of_cells cells
           | k -> raise @@ unexpected k "array")
     | Obj _ as t -> (
         let d = destruct_obj t in
@@ -363,25 +390,39 @@ struct
           | k -> raise @@ unexpected k "object")
     | Tup _ as t -> (
         let (r, i) = destruct_tup 0 t in
+        let tup_of_cells cells =
+          let cells = Array.of_list cells in
+          let len = Array.length cells in
+          if i <> Array.length cells then
+            raise (Cannot_destruct ([], Bad_array_size (len, i)))
+          else r cells
+        in
         fun v ->
           match Repr.view v with
-          | `A cells ->
-              let cells = Array.of_list cells in
-              let len = Array.length cells in
-              if i <> Array.length cells then
-                raise (Cannot_destruct ([], Bad_array_size (len, i)))
-              else r cells
+          | `O o when bson_relaxation -> (
+              (* Weak `Repr`s like BSON don't know the difference  *)
+              match maybe_array_in_disguise o with
+              | Some cells -> tup_of_cells cells
+              | None -> raise @@ unexpected (`O o) "array")
+          | `A cells -> tup_of_cells cells
           | k -> raise @@ unexpected k "array")
     | Tups _ as t -> (
         let (r, i) = destruct_tup 0 t in
+        let tups_of_cells cells =
+          let cells = Array.of_list cells in
+          let len = Array.length cells in
+          if i <> Array.length cells then
+            raise (Cannot_destruct ([], Bad_array_size (len, i)))
+          else r cells
+        in
         fun v ->
           match Repr.view v with
-          | `A cells ->
-              let cells = Array.of_list cells in
-              let len = Array.length cells in
-              if i <> Array.length cells then
-                raise (Cannot_destruct ([], Bad_array_size (len, i)))
-              else r cells
+          | `O o when bson_relaxation -> (
+              (* Weak `Repr`s like BSON don't know the difference  *)
+              match maybe_array_in_disguise o with
+              | Some cells -> tups_of_cells cells
+              | None -> raise @@ unexpected (`O o) "array")
+          | `A cells -> tups_of_cells cells
           | k -> raise @@ unexpected k "array")
     | Union cases ->
         fun v ->
@@ -389,7 +430,7 @@ struct
             | [] ->
                 raise (Cannot_destruct ([], No_case_matched (List.rev errs)))
             | Case {encoding; inj} :: rest -> (
-                try inj (destruct encoding v)
+                try inj (destruct ~bson_relaxation encoding v)
                 with err -> do_cases (err :: errs) rest)
           in
           do_cases [] cases
@@ -400,7 +441,7 @@ struct
     match t with
     | Tup t ->
         ( (fun arr ->
-            try destruct t arr.(i)
+            try destruct ~bson_relaxation:false t arr.(i)
             with Cannot_destruct (path, err) ->
               raise (Cannot_destruct (`Index i :: path, err))),
           succ i )
@@ -433,7 +474,7 @@ struct
         fun fields ->
           try
             let (v, rest) = assoc [] n fields in
-            (destruct t v, rest, false)
+            (destruct ~bson_relaxation:false t v, rest, false)
           with
           | Not_found -> raise (Cannot_destruct ([], Missing_field n))
           | Cannot_destruct (path, err) ->
@@ -442,7 +483,7 @@ struct
         fun fields ->
           try
             let (v, rest) = assoc [] n fields in
-            (Some (destruct t v), rest, false)
+            (Some (destruct ~bson_relaxation:false t v), rest, false)
           with
           | Not_found -> (None, fields, false)
           | Cannot_destruct (path, err) ->
@@ -451,7 +492,7 @@ struct
         fun fields ->
           try
             let (v, rest) = assoc [] n fields in
-            (destruct t v, rest, false)
+            (destruct ~bson_relaxation:false t v, rest, false)
           with
           | Not_found -> (d, fields, false)
           | Cannot_destruct (path, err) ->
@@ -483,6 +524,8 @@ struct
           in
           do_cases [] cases
     | _ -> invalid_arg "Json_encoding.destruct: consequence of bad merge_objs"
+
+  let destruct ?(bson_relaxation = false) e v = destruct ~bson_relaxation e v
 
   let custom write read ~schema =
     let read : type tf. (module Json_repr.Repr with type value = tf) -> tf -> 't
