@@ -83,6 +83,8 @@ module type TESTABLE = sig
   val ding : t Json_encoding.encoding
 
   val pp : t Crowbar.printer
+
+  val eq : t -> t -> bool
 end
 
 type testable = (module TESTABLE)
@@ -96,6 +98,8 @@ let null : testable =
     let ding = Json_encoding.null
 
     let pp ppf () = Crowbar.pp ppf "(null)"
+
+    let eq () () = true
   end)
 
 let empty : testable =
@@ -107,6 +111,8 @@ let empty : testable =
     let ding = Json_encoding.empty
 
     let pp ppf () = Crowbar.pp ppf "(empty)"
+
+    let eq () () = true
   end)
 
 let unit : testable =
@@ -118,6 +124,8 @@ let unit : testable =
     let ding = Json_encoding.unit
 
     let pp ppf () = Crowbar.pp ppf "(unit)"
+
+    let eq () () = true
   end)
 
 let map_constant (s : string) : testable =
@@ -129,6 +137,8 @@ let map_constant (s : string) : testable =
     let ding = Json_encoding.constant s
 
     let pp ppf () = Crowbar.pp ppf "\"%s\"" s
+
+    let eq () () = true
   end)
 
 let map_int32 (i : int32) : testable =
@@ -140,6 +150,8 @@ let map_int32 (i : int32) : testable =
     let ding = Json_encoding.int32
 
     let pp = Crowbar.pp_int32
+
+    let eq = Int32.equal
   end)
 
 let map_int32_conv (i : int32) : testable =
@@ -151,6 +163,8 @@ let map_int32_conv (i : int32) : testable =
     let ding = Json_encoding.(conv Int32.succ Int32.pred int32)
 
     let pp = Crowbar.pp_int32
+
+    let eq = Int32.equal
   end)
 
 let map_int32_list (i : int32) : testable =
@@ -164,6 +178,8 @@ let map_int32_list (i : int32) : testable =
     let ding = Json_encoding.(list int32)
 
     let pp = Crowbar.(pp_list pp_int32)
+
+    let eq = List.equal Int32.equal
   end)
 
 let lower_bound_53 = Int64.(neg @@ shift_left 1L 53)
@@ -180,6 +196,8 @@ let map_int53 (i : int64) : testable =
     let ding = Json_encoding.int53
 
     let pp = Crowbar.pp_int64
+
+    let eq = Int64.equal
   end)
 
 let map_range_int a b c : testable =
@@ -201,6 +219,8 @@ let map_range_int a b c : testable =
     let ding = Json_encoding.ranged_int ~minimum:small ~maximum:big name
 
     let pp ppf i = Crowbar.pp ppf "(%d :[%d;%d])" i small big
+
+    let eq = Int.equal
   end)
 
 let map_range_float a b c : testable =
@@ -226,6 +246,8 @@ let map_range_float a b c : testable =
       let ding = Json_encoding.ranged_float ~minimum:small ~maximum:big name
 
       let pp ppf i = Crowbar.pp ppf "(%f :[%f;%f])" i small big
+
+      let eq = Float.equal
     end)
 
 let map_bool b : testable =
@@ -237,6 +259,8 @@ let map_bool b : testable =
     let ding = Json_encoding.bool
 
     let pp = Crowbar.pp_bool
+
+    let eq = Bool.equal
   end)
 
 let map_string s : testable =
@@ -248,6 +272,8 @@ let map_string s : testable =
     let ding = Json_encoding.string
 
     let pp = Crowbar.pp_string
+
+    let eq = String.equal
   end)
 
 let map_bytes s : testable =
@@ -259,6 +285,8 @@ let map_bytes s : testable =
     let ding = Json_encoding.bytes
 
     let pp fmt b = Crowbar.pp_string fmt (Bytes.to_string b)
+
+    let eq = Bytes.equal
   end)
 
 let map_float f : testable =
@@ -270,6 +298,8 @@ let map_float f : testable =
     let ding = Json_encoding.float
 
     let pp = Crowbar.pp_float
+
+    let eq = Float.equal
   end)
 
 (* And now combinators *)
@@ -297,6 +327,8 @@ let enum (n : int) : testable =
       | Zilch -> Crowbar.pp_string ppf "Zilch"
       | Yi -> Crowbar.pp_string ppf "Yi"
       | Dos -> Crowbar.pp_string ppf "Dos"
+
+    let eq = ( = )
   end)
 
 let map_def (t : testable) : testable =
@@ -310,6 +342,8 @@ let map_def (t : testable) : testable =
     let ding = Json_encoding.def name T.ding
 
     let pp = T.pp
+
+    let eq = T.eq
   end)
 
 let map_conv_id (t : testable) : testable =
@@ -322,6 +356,8 @@ let map_conv_id (t : testable) : testable =
     let ding = Json_encoding.conv Fun.id Fun.id T.ding
 
     let pp = T.pp
+
+    let eq = T.eq
   end)
 
 let map_conv_obj (t : testable) : testable =
@@ -339,6 +375,8 @@ let map_conv_obj (t : testable) : testable =
         (obj2 (req (new_name ()) T.ding) (req (new_name ()) empty))
 
     let pp = T.pp
+
+    let eq = T.eq
   end)
 
 let map_conv_obj_dft (t : testable) : testable =
@@ -353,9 +391,13 @@ let map_conv_obj_dft (t : testable) : testable =
       conv
         (fun v -> (v, ()))
         (fun (v, ()) -> v)
-        (obj2 (dft (new_name ()) T.ding T.v) (req (new_name ()) empty))
+        (obj2
+           (dft ~equal:T.eq (new_name ()) T.ding T.v)
+           (req (new_name ()) empty))
 
     let pp = T.pp
+
+    let eq = T.eq
   end)
 
 let map_conv_obj_dft_construct (t : testable) : testable =
@@ -371,10 +413,12 @@ let map_conv_obj_dft_construct (t : testable) : testable =
         (fun v -> (v, ()))
         (fun (v, ()) -> v)
         (obj2
-           (dft ~construct:true (new_name ()) T.ding T.v)
+           (dft ~equal:T.eq ~construct:true (new_name ()) T.ding T.v)
            (req (new_name ()) empty))
 
     let pp = T.pp
+
+    let eq = T.eq
   end)
 
 let map_conv_singleton_union (t : testable) : testable =
@@ -389,6 +433,8 @@ let map_conv_singleton_union (t : testable) : testable =
       union [case T.ding (fun x -> Some x) (fun x -> x)]
 
     let pp = T.pp
+
+    let eq = T.eq
   end)
 
 let map_mu_dup_list (t : testable) : testable =
@@ -416,6 +462,8 @@ let map_mu_dup_list (t : testable) : testable =
     let pp fmt = function
       | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
       | _ -> assert false
+
+    let eq = List.equal T.eq
   end)
 
 let map_singleton_list (t : testable) : testable =
@@ -430,6 +478,8 @@ let map_singleton_list (t : testable) : testable =
     let pp fmt = function
       | [v] -> Format.fprintf fmt "[%a]" T.pp v
       | _ -> assert false
+
+    let eq = List.equal T.eq
   end)
 
 let map_dup_list (t : testable) : testable =
@@ -444,6 +494,8 @@ let map_dup_list (t : testable) : testable =
     let pp fmt = function
       | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
       | _ -> assert false
+
+    let eq = List.equal T.eq
   end)
 
 let map_some (t : testable) : testable =
@@ -466,6 +518,8 @@ let map_some (t : testable) : testable =
           | None -> Format.fprintf fmt "None"
           | Some v -> Format.fprintf fmt "Some(%a)" T.pp v)
         o
+
+    let eq = Option.equal T.eq
   end)
 
 let map_none (t : testable) : testable =
@@ -488,6 +542,8 @@ let map_none (t : testable) : testable =
           | None -> Format.fprintf fmt "None"
           | Some v -> Format.fprintf fmt "Some(%a)" T.pp v)
         o
+
+    let eq = Option.equal T.eq
   end)
 
 let map_list (t : testable) (ts : testable list) : testable =
@@ -507,6 +563,8 @@ let map_list (t : testable) (ts : testable list) : testable =
         ts
 
     let pp = Crowbar.pp_list T.pp
+
+    let eq = List.equal T.eq
   end)
 
 let map_array (t : testable) (ts : testable array) : testable =
@@ -543,6 +601,9 @@ let map_array (t : testable) (ts : testable array) : testable =
              ~pp_sep:(fun ppf () -> Format.fprintf ppf ";@ ")
              T.pp)
           (Array.to_list a)
+
+    let eq a1 a2 =
+      Array.length a1 = Array.length a2 && Array.for_all2 T.eq a1 a2
   end)
 
 let map_obj1 (t1 : testable) : testable =
@@ -573,6 +634,8 @@ let map_obj2 (t1 : testable) (t2 : testable) : testable =
 
     let pp ppf (v1, v2) =
       Crowbar.pp ppf "@[<hv 1>(%s: %a, %s: %a)@]" name1 T1.pp v1 name2 T2.pp v2
+
+    let eq (a1, a2) (b1, b2) = T1.eq a1 b1 && T2.eq a2 b2
   end)
 
 let map_tup1 (t1 : testable) : testable =
@@ -596,6 +659,8 @@ let map_tup2 (t1 : testable) (t2 : testable) : testable =
     let v = (T1.v, T2.v)
 
     let pp ppf (v1, v2) = Crowbar.pp ppf "@[<hv 1>(%a, %a)@]" T1.pp v1 T2.pp v2
+
+    let eq (a1, a2) (b1, b2) = T1.eq a1 b1 && T2.eq a2 b2
   end)
 
 let map_tup3 (t1 : testable) (t2 : testable) (t3 : testable) : testable =
@@ -611,6 +676,8 @@ let map_tup3 (t1 : testable) (t2 : testable) (t3 : testable) : testable =
 
     let pp ppf (v1, v2, v3) =
       Crowbar.pp ppf "@[<hv 1>(%a, %a, %a)@]" T1.pp v1 T2.pp v2 T3.pp v3
+
+    let eq (a1, a2, a3) (b1, b2, b3) = T1.eq a1 b1 && T2.eq a2 b2 && T3.eq a3 b3
   end)
 
 let map_tup4 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable) :
@@ -638,6 +705,9 @@ let map_tup4 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable) :
         v3
         T4.pp
         v4
+
+    let eq (a1, a2, a3, a4) (b1, b2, b3, b4) =
+      T1.eq a1 b1 && T2.eq a2 b2 && T3.eq a3 b3 && T4.eq a4 b4
   end)
 
 let map_tup5 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
@@ -668,6 +738,9 @@ let map_tup5 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v4
         T5.pp
         v5
+
+    let eq (a1, a2, a3, a4, a5) (b1, b2, b3, b4, b5) =
+      T1.eq a1 b1 && T2.eq a2 b2 && T3.eq a3 b3 && T4.eq a4 b4 && T5.eq a5 b5
   end)
 
 let map_tup6 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
@@ -702,6 +775,10 @@ let map_tup6 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v5
         T6.pp
         v6
+
+    let eq (a1, a2, a3, a4, a5, a6) (b1, b2, b3, b4, b5, b6) =
+      T1.eq a1 b1 && T2.eq a2 b2 && T3.eq a3 b3 && T4.eq a4 b4 && T5.eq a5 b5
+      && T6.eq a6 b6
   end)
 
 let map_tup7 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
@@ -739,6 +816,10 @@ let map_tup7 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v6
         T7.pp
         v7
+
+    let eq (a1, a2, a3, a4, a5, a6, a7) (b1, b2, b3, b4, b5, b6, b7) =
+      T1.eq a1 b1 && T2.eq a2 b2 && T3.eq a3 b3 && T4.eq a4 b4 && T5.eq a5 b5
+      && T6.eq a6 b6 && T7.eq a7 b7
   end)
 
 let map_tup8 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
@@ -787,6 +868,10 @@ let map_tup8 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v7
         T8.pp
         v8
+
+    let eq (a1, a2, a3, a4, a5, a6, a7, a8) (b1, b2, b3, b4, b5, b6, b7, b8) =
+      T1.eq a1 b1 && T2.eq a2 b2 && T3.eq a3 b3 && T4.eq a4 b4 && T5.eq a5 b5
+      && T6.eq a6 b6 && T7.eq a7 b7 && T8.eq a8 b8
   end)
 
 let map_tup9 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
@@ -840,6 +925,11 @@ let map_tup9 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v8
         T9.pp
         v9
+
+    let eq (a1, a2, a3, a4, a5, a6, a7, a8, a9)
+        (b1, b2, b3, b4, b5, b6, b7, b8, b9) =
+      T1.eq a1 b1 && T2.eq a2 b2 && T3.eq a3 b3 && T4.eq a4 b4 && T5.eq a5 b5
+      && T6.eq a6 b6 && T7.eq a7 b7 && T8.eq a8 b8 && T9.eq a9 b9
   end)
 
 let map_tup10 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
@@ -898,6 +988,12 @@ let map_tup10 (t1 : testable) (t2 : testable) (t3 : testable) (t4 : testable)
         v9
         T10.pp
         v10
+
+    let eq (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10)
+        (b1, b2, b3, b4, b5, b6, b7, b8, b9, b10) =
+      T1.eq a1 b1 && T2.eq a2 b2 && T3.eq a3 b3 && T4.eq a4 b4 && T5.eq a5 b5
+      && T6.eq a6 b6 && T7.eq a7 b7 && T8.eq a8 b8 && T9.eq a9 b9
+      && T10.eq a10 b10
   end)
 
 let map_merge_tups (t1 : testable) (t2 : testable) : testable =
@@ -911,6 +1007,8 @@ let map_merge_tups (t1 : testable) (t2 : testable) : testable =
     let v = (T1.v, T2.v)
 
     let pp ppf (v1, v2) = Crowbar.pp ppf "@[<hv 1>(%a, %a)@]" T1.pp v1 T2.pp v2
+
+    let eq (a1, a2) (b1, b2) = T1.eq a1 b1 && T2.eq a2 b2
   end)
 
 let map_schema (t : testable) : testable =
@@ -923,6 +1021,8 @@ let map_schema (t : testable) : testable =
     let v = Json_encoding.schema T.ding
 
     let pp ppf schema = Json_schema.pp ppf schema
+
+    let eq = ( = )
   end)
 
 let testable_printer : testable Crowbar.printer =
@@ -1002,7 +1102,7 @@ module Ezjsonm_construct = Json_encoding.Make (Json_repr.Ezjsonm)
 module Yojson_construct = Json_encoding.Make (Json_repr.Yojson)
 
 (* Basic functions for executing tests on a given input *)
-let roundtrip (module M : Json_encoding.S) name pp ding v =
+let roundtrip (module M : Json_encoding.S) name pp eq ding v =
   let json =
     try M.construct ding v
     with Invalid_argument m ->
@@ -1014,16 +1114,16 @@ let roundtrip (module M : Json_encoding.S) name pp ding v =
     with Invalid_argument s ->
       Format.kasprintf Crowbar.fail "Cannot destruct (%s): %s" name s
   in
-  Crowbar.check_eq ~pp v vv
+  Crowbar.check_eq ~pp ~eq v vv
 
 (* Setting up the actual tests *)
 let test_testable_ezjsonm (testable : testable) =
   let module T = (val testable) in
-  roundtrip (module Ezjsonm_construct) "ez" T.pp T.ding T.v
+  roundtrip (module Ezjsonm_construct) "ez" T.pp T.eq T.ding T.v
 
 let test_testable_yojson (testable : testable) =
   let module T = (val testable) in
-  roundtrip (module Yojson_construct) "yo" T.pp T.ding T.v
+  roundtrip (module Yojson_construct) "yo" T.pp T.eq T.ding T.v
 
 let pp_jsonm_lexeme fmt = function
   | `Null -> Format.pp_print_string fmt "null"

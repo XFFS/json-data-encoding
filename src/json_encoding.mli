@@ -233,10 +233,15 @@ val opt :
 
 (** An optional field of a given type.
     The field is omitted when equal to the default value except when [construct]
-    is [true]. *)
+    is [true].
+
+    @param [equal] defaults to the polymorphic, structural equality ([( = )]).
+    You must set this function if the type of data carried by the field is not
+    comparable (e.g., a {!Seq.t}). *)
 val dft :
   ?title:string ->
   ?description:string ->
+  ?equal:('t -> 't -> bool) ->
   ?construct:bool ->
   string ->
   't encoding ->
