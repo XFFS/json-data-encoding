@@ -37,10 +37,19 @@ let bool i =
      needs to be deterministic. *)
   i mod 3 = 0 || i mod 5 = 0
 
+let seq_unfold f init =
+  (* for compatibility with OCaml < 4.11 we redefine Seq.unfold *)
+  let rec aux acc () =
+    match f acc with
+    | None -> Seq.Nil
+    | Some (elt, acc) -> Seq.Cons (elt, aux acc)
+  in
+  aux init
+
 let o3 len =
   let len = max len 0 in
   ( List.init len (fun _ -> ()),
-    Seq.unfold (fun l -> if l >= len then None else Some (bool l, l + 1)) 0,
+    seq_unfold (fun l -> if l >= len then None else Some (bool l, l + 1)) 0,
     Array.init len (fun _ -> string ()) )
 
 let big len = List.init len (fun _ -> o3 (len / 10))
