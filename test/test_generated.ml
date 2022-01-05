@@ -179,7 +179,7 @@ let map_int32_list (i : int32) : testable =
 
     let pp = Crowbar.(pp_list pp_int32)
 
-    let eq = List.equal Int32.equal
+    let eq = List.for_all2 Int32.equal
   end)
 
 let map_int32_seq (i : int32) : testable =
@@ -194,7 +194,7 @@ let map_int32_seq (i : int32) : testable =
 
     let pp fmt s = Crowbar.(pp_list pp_int32) fmt (List.of_seq s)
 
-    let eq s1 s2 = List.equal Int32.equal (List.of_seq s1) (List.of_seq s2)
+    let eq s1 s2 = List.for_all2 Int32.equal (List.of_seq s1) (List.of_seq s2)
   end)
 
 let lower_bound_53 = Int64.(neg @@ shift_left 1L 53)
@@ -478,7 +478,7 @@ let map_mu_dup_list (t : testable) : testable =
       | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
       | _ -> assert false
 
-    let eq = List.equal T.eq
+    let eq = List.for_all2 T.eq
   end)
 
 let map_singleton_list (t : testable) : testable =
@@ -494,7 +494,7 @@ let map_singleton_list (t : testable) : testable =
       | [v] -> Format.fprintf fmt "[%a]" T.pp v
       | _ -> assert false
 
-    let eq = List.equal T.eq
+    let eq = List.for_all2 T.eq
   end)
 
 let map_dup_list (t : testable) : testable =
@@ -510,7 +510,7 @@ let map_dup_list (t : testable) : testable =
       | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
       | _ -> assert false
 
-    let eq = List.equal T.eq
+    let eq = List.for_all2 T.eq
   end)
 
 let map_singleton_seq (t : testable) : testable =
@@ -527,7 +527,7 @@ let map_singleton_seq (t : testable) : testable =
       | [v] -> Format.fprintf fmt "[%a]" T.pp v
       | _ -> assert false
 
-    let eq s1 s2 = List.equal T.eq (List.of_seq s1) (List.of_seq s2)
+    let eq s1 s2 = List.for_all2 T.eq (List.of_seq s1) (List.of_seq s2)
   end)
 
 let map_dup_seq (t : testable) : testable =
@@ -544,7 +544,7 @@ let map_dup_seq (t : testable) : testable =
       | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
       | _ -> assert false
 
-    let eq s1 s2 = List.equal T.eq (List.of_seq s1) (List.of_seq s2)
+    let eq s1 s2 = List.for_all2 T.eq (List.of_seq s1) (List.of_seq s2)
   end)
 
 let map_some (t : testable) : testable =
@@ -613,7 +613,7 @@ let map_list (t : testable) (ts : testable list) : testable =
 
     let pp = Crowbar.pp_list T.pp
 
-    let eq = List.equal T.eq
+    let eq = List.for_all2 T.eq
   end)
 
 let map_array (t : testable) (ts : testable array) : testable =
