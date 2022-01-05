@@ -79,6 +79,7 @@ type _ encoding =
   | String : string encoding
   | Float : bounds option -> float encoding
   | Array : 'a encoding -> 'a array encoding
+  | Seq : 'a encoding -> 'a Seq.t encoding
   | Obj : 'a field -> 'a encoding
   | Objs : 'a encoding * 'b encoding -> ('a * 'b) encoding
   | Tup : 'a encoding -> 'a encoding
@@ -210,6 +211,9 @@ struct
       | Array t ->
           let w v = construct t v in
           fun arr -> Repr.repr (`A (Array.to_list (Array.map w arr)))
+      | Seq t ->
+          let w v = construct t v in
+          fun s -> Repr.repr (`A (List.of_seq (Seq.map w s)))
       | Obj (Req {name = n; encoding = t}) ->
           let w v = construct t v in
           fun v -> Repr.repr (`O [(n, w v)])
@@ -371,6 +375,31 @@ struct
               | Some cells -> array_of_cells cells
               | None -> raise @@ unexpected (`O o) "array")
           | `A cells -> array_of_cells cells
+          | k -> raise @@ unexpected k "array")
+    | Seq t -> (
+        let seq_of_cells cells =
+          let i = ref (-1) in
+          Seq.map
+            (fun cell ->
+              try
+                incr i ;
+                destruct ~bson_relaxation:false t cell
+              with Cannot_destruct (path, err) ->
+                raise (Cannot_destruct (`Index !i :: path, err)))
+            (List.to_seq cells)
+        in
+        fun v ->
+          match Repr.view v with
+          | `O [] ->
+              (* For backwards compatibility, we handle [[]] with the
+                 [bson_relaxation] semantic even if it is not set. *)
+              Seq.empty
+          | `O o when bson_relaxation -> (
+              (* Weak `Repr`s like BSON don't know the difference *)
+              match maybe_array_in_disguise o with
+              | Some cells -> seq_of_cells cells
+              | None -> raise @@ unexpected (`O o) "array")
+          | `A cells -> seq_of_cells cells
           | k -> raise @@ unexpected k "array")
     | Obj _ as t -> (
         let d = destruct_obj t in
@@ -691,6 +720,7 @@ let schema ?definitions_path encoding =
         sch := nsch ;
         def
     | Array t -> element (Monomorphic_array (schema t, array_specs))
+    | Seq t -> element (Monomorphic_array (schema t, array_specs))
     | Objs _ as o -> (
         match object_schema o with
         | [(properties, ext, elt)] -> (
@@ -920,6 +950,8 @@ let bytes = Conv (Bytes.to_string, Bytes.of_string, string, None)
 let bool = Bool
 
 let array t = Array t
+
+let seq t = Seq t
 
 let obj1 f1 = Obj f1
 
@@ -1155,6 +1187,7 @@ let rec is_nullable : type t. t encoding -> bool = function
   | Int _ -> false
   | Float _ -> false
   | Array _ -> false
+  | Seq _ -> false
   | Empty -> false
   | String -> false
   | Bool -> false
@@ -1221,8 +1254,6 @@ let merge_tups t1 t2 =
   else invalid_arg "Json_encoding.merge_tups"
 
 let list t = Conv (Array.of_list, Array.to_list, Array t, None)
-
-let seq t = Conv (Array.of_seq, Array.to_seq, Array t, None)
 
 let merge_objs o1 o2 =
   (* FIXME: check fields unicity *)
@@ -1469,6 +1500,7 @@ module JsonmLexemeSeq = struct
       | Mu {self} as enc -> fun v -> (construct [@ocaml.tailcall]) (self enc) v
       | Array t -> (
           function [||] -> empty_arr | vs -> `As +< construct_arr t vs +> `Ae)
+      | Seq t -> fun s -> `As +< construct_seq_ t s +> `Ae
       | Obj (Req {name = n; encoding = t}) ->
           fun v -> `Os +< construct_named n t v +> `Oe
       | Obj
@@ -1517,6 +1549,8 @@ module JsonmLexemeSeq = struct
      fun t vs ->
       (* TODO: optimise this one for tailcall ? *)
       Seq.flat_map (fun v -> construct t v) (Array.to_seq vs)
+    and construct_seq_ : type t. t encoding -> t Seq.t -> jsonm_lexeme Seq.t =
+     fun t vs -> Seq.flat_map (fun v -> construct t v) vs
     and construct_named :
         type t. string -> t encoding -> t -> jsonm_lexeme Seq.t =
      fun n t v -> `Name n ++ construct t v

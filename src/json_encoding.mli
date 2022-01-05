@@ -355,7 +355,10 @@ val list : 'a encoding -> 'a list encoding
 
     The JSON form is indistinguishable from that of a list. In other words,
     [construct (list e) (List.of_seq s)] is the same JSON value as
-    [construct (seq e) s]. *)
+    [construct (seq e) s].
+
+    In case you use {!construct_seq}, the elements sequence is traversed lazily
+    as needed. *)
 val seq : 'a encoding -> 'a Seq.t encoding
 
 (** An encoding of an OCaml associative list by a JSON object. *)
