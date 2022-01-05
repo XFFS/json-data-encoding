@@ -131,27 +131,27 @@ let rec eq_element a b =
 
 and eq_kind a b =
   match (a, b) with
-  | (Object aa, Object ab) -> eq_object_specs aa ab
-  | (Array (esa, sa), Array (esb, sb)) ->
+  | Object aa, Object ab -> eq_object_specs aa ab
+  | Array (esa, sa), Array (esb, sb) ->
       List.compare_lengths esa esb = 0
       && List.for_all2 eq_element esa esb
       && eq_array_specs sa sb
-  | (Monomorphic_array (ea, sa), Monomorphic_array (eb, sb)) ->
+  | Monomorphic_array (ea, sa), Monomorphic_array (eb, sb) ->
       eq_element ea eb && eq_array_specs sa sb
-  | (Combine (ca, esa), Combine (cb, esb)) ->
+  | Combine (ca, esa), Combine (cb, esb) ->
       ca = cb
       && List.compare_lengths esa esb = 0
       && List.for_all2 eq_element esa esb
-  | (Def_ref pa, Def_ref pb) -> pa = pb
-  | (Id_ref ra, Id_ref rb) -> ra = rb
-  | (Ext_ref ra, Ext_ref rb) -> ra = rb
-  | (String sa, String sb) -> sa = sb
-  | (Integer na, Integer nb) -> na = nb
-  | (Number na, Number nb) -> na = nb
-  | (Boolean, Boolean) -> true
-  | (Null, Null) -> true
-  | (Any, Any) -> true
-  | (Dummy, Dummy) -> true
+  | Def_ref pa, Def_ref pb -> pa = pb
+  | Id_ref ra, Id_ref rb -> ra = rb
+  | Ext_ref ra, Ext_ref rb -> ra = rb
+  | String sa, String sb -> sa = sb
+  | Integer na, Integer nb -> na = nb
+  | Number na, Number nb -> na = nb
+  | Boolean, Boolean -> true
+  | Null, Null -> true
+  | Any, Any -> true
+  | Dummy, Dummy -> true
   | _ -> false
 
 and eq_object_specs a b =
@@ -188,9 +188,9 @@ and eq_array_specs a b =
   && a.unique_items = b.unique_items
   &&
   match (a.additional_items, b.additional_items) with
-  | (Some a, Some b) -> eq_element a b
-  | (None, None) -> true
-  | (_, _) -> false
+  | Some a, Some b -> eq_element a b
+  | None, None -> true
+  | _, _ -> false
 
 (*-- human readable output -------------------------------------------------*)
 
@@ -199,7 +199,7 @@ let pp_string ppf s = Json_repr.(pp (module Ezjsonm)) ppf (`String s)
 let pp_num ppf num =
   if abs_float num < 1000. then Format.fprintf ppf "%g" num
   else
-    let (is_positive, abs_num) =
+    let is_positive, abs_num =
       if num < 0. then (false, ~-.num) else (true, num)
     in
     let already_printed =
@@ -234,12 +234,12 @@ let pp_numeric_specs ppf {multiple_of; minimum; maximum} =
       | Some v -> Format.fprintf ppf "multiple of %g" v)
     multiple_of
     (fun ppf -> function
-      | (None, _, _) | (_, None, None) -> ()
+      | None, _, _ | _, None, None -> ()
       | _ -> Format.fprintf ppf ", ")
     (multiple_of, minimum, maximum)
     (fun ppf -> function
-      | (None, None) -> ()
-      | (minimum, maximum) ->
+      | None, None -> ()
+      | minimum, maximum ->
           Format.fprintf
             ppf
             "∈ %a, %a"
@@ -319,35 +319,35 @@ let rec pp_element ppf element =
                   match element.kind with
                   | String {pattern; min_length; max_length; str_format} -> (
                       let length_pp ppf = function
-                        | (n, None) when n > 0 ->
+                        | n, None when n > 0 ->
                             Format.fprintf ppf " (%d <= length)" n
-                        | (_, None) -> Format.fprintf ppf ""
-                        | (n, Some m) when n > 0 ->
+                        | _, None -> Format.fprintf ppf ""
+                        | n, Some m when n > 0 ->
                             Format.fprintf ppf " (%d <= length <= %d)" n m
-                        | (_, Some n) -> Format.fprintf ppf " (length <= %d)" n
+                        | _, Some n -> Format.fprintf ppf " (length <= %d)" n
                       in
                       match (pattern, str_format) with
-                      | (None, None) ->
+                      | None, None ->
                           Format.fprintf
                             ppf
                             "string%a"
                             length_pp
                             (min_length, max_length)
-                      | (Some pat, None) ->
+                      | Some pat, None ->
                           Format.fprintf
                             ppf
                             "/%s/%a"
                             pat
                             length_pp
                             (min_length, max_length)
-                      | (None, Some fmt) ->
+                      | None, Some fmt ->
                           Format.fprintf
                             ppf
                             "%s%a"
                             fmt
                             length_pp
                             (min_length, max_length)
-                      | (Some pat, Some fmt) ->
+                      | Some pat, Some fmt ->
                           Format.fprintf
                             ppf
                             "%s (/%s/)%a"
@@ -864,17 +864,16 @@ module Make (Repr : Json_repr.Repr) = struct
     let rec collect_definition : Uri.t -> element_kind =
      fun uri ->
       match (Uri.host uri, Uri.fragment uri) with
-      | (Some _ (* Actually means: any of host, user or port is defined. *), _)
-        ->
+      | Some _ (* Actually means: any of host, user or port is defined. *), _ ->
           Ext_ref uri
-      | (None, None) ->
+      | None, None ->
           raise
             (Cannot_parse
                ([], Bad_reference (Uri.to_string uri ^ " has no fragment")))
-      | (None, Some fragment) when not (String.contains fragment '/') ->
+      | None, Some fragment when not (String.contains fragment '/') ->
           collected_id_refs := fragment :: !collected_id_refs ;
           Id_ref fragment
-      | (None, Some fragment) -> (
+      | None, Some fragment -> (
           let path =
             try path_of_json_pointer ~wildcards:false fragment
             with err -> raise (Cannot_parse ([], err))
@@ -898,7 +897,7 @@ module Make (Repr : Json_repr.Repr) = struct
     and parse_element : Uri.t -> Repr.value -> element =
      fun source json ->
       let id = opt_uri_field json "id" in
-      let (id, source) =
+      let id, source =
         match id with
         | None -> (None, source)
         | Some uri ->
@@ -1428,7 +1427,7 @@ module Make (Repr : Json_repr.Repr) = struct
     let rec combine sacc eacc = function
       | [] -> update (element (Combine (op, eacc))) sacc
       | s :: ss ->
-          let (sacc, s) = merge_definitions (sacc, s) in
+          let sacc, s = merge_definitions (sacc, s) in
           combine sacc (s.root :: eacc) ss
     in
     combine any [] schemas

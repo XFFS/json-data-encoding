@@ -227,10 +227,10 @@ struct
           let w1 v = construct o1 v in
           let w2 v = construct o2 v in
           function
-          | (v1, v2) -> (
+          | v1, v2 -> (
               match (Repr.view (w1 v1), Repr.view (w2 v2)) with
-              | (`O l1, `O l2) -> Repr.repr (`O (l1 @ l2))
-              | (`Null, `Null) | _ ->
+              | `O l1, `O l2 -> Repr.repr (`O (l1 @ l2))
+              | `Null, `Null | _ ->
                   invalid_arg
                     "Json_encoding.construct: consequence of bad merge_objs"))
       | Tup t ->
@@ -240,9 +240,9 @@ struct
           let w1 v = construct o1 v in
           let w2 v = construct o2 v in
           function
-          | (v1, v2) -> (
+          | v1, v2 -> (
               match (Repr.view (w1 v1), Repr.view (w2 v2)) with
-              | (`A l1, `A l2) -> Repr.repr (`A (l1 @ l2))
+              | `A l1, `A l2 -> Repr.repr (`A (l1 @ l2))
               | _ ->
                   invalid_arg
                     "Json_encoding.construct: consequence of bad merge_tups"))
@@ -307,7 +307,7 @@ struct
         fun v ->
           match Repr.view v with
           | `Float v ->
-              let (rest, v) = modf v in
+              let rest, v = modf v in
               (if rest <> 0. then
                let exn =
                  Failure (int_name ^ " cannot have a fractional part")
@@ -373,7 +373,7 @@ struct
         fun v ->
           match Repr.view v with
           | `O fields -> (
-              let (r, rest, ign) = d fields in
+              let r, rest, ign = d fields in
               match rest with
               | (field, _) :: _ when not ign -> raise @@ Unexpected_field field
               | _ -> r)
@@ -383,13 +383,13 @@ struct
         fun v ->
           match Repr.view v with
           | `O fields -> (
-              let (r, rest, ign) = d fields in
+              let r, rest, ign = d fields in
               match rest with
               | (field, _) :: _ when not ign -> raise @@ Unexpected_field field
               | _ -> r)
           | k -> raise @@ unexpected k "object")
     | Tup _ as t -> (
-        let (r, i) = destruct_tup 0 t in
+        let r, i = destruct_tup 0 t in
         let tup_of_cells cells =
           let cells = Array.of_list cells in
           let len = Array.length cells in
@@ -407,7 +407,7 @@ struct
           | `A cells -> tup_of_cells cells
           | k -> raise @@ unexpected k "array")
     | Tups _ as t -> (
-        let (r, i) = destruct_tup 0 t in
+        let r, i = destruct_tup 0 t in
         let tups_of_cells cells =
           let cells = Array.of_list cells in
           let len = Array.length cells in
@@ -446,11 +446,11 @@ struct
               raise (Cannot_destruct (`Index i :: path, err))),
           succ i )
     | Tups (t1, t2) ->
-        let (r1, i) = destruct_tup i t1 in
-        let (r2, i) = destruct_tup i t2 in
+        let r1, i = destruct_tup i t1 in
+        let r2, i = destruct_tup i t2 in
         ((fun arr -> (r1 arr, r2 arr)), i)
     | Conv (_, fto, t, _) ->
-        let (r, i) = destruct_tup i t in
+        let r, i = destruct_tup i t in
         ((fun arr -> fto (r arr)), i)
     | Mu {self} as enc -> destruct_tup i (self enc)
     | Describe {encoding} -> destruct_tup i encoding
@@ -473,7 +473,7 @@ struct
     | Obj (Req {name = n; encoding = t}) -> (
         fun fields ->
           try
-            let (v, rest) = assoc [] n fields in
+            let v, rest = assoc [] n fields in
             (destruct ~bson_relaxation:false t v, rest, false)
           with
           | Not_found -> raise (Cannot_destruct ([], Missing_field n))
@@ -482,7 +482,7 @@ struct
     | Obj (Opt {name = n; encoding = t}) -> (
         fun fields ->
           try
-            let (v, rest) = assoc [] n fields in
+            let v, rest = assoc [] n fields in
             (Some (destruct ~bson_relaxation:false t v), rest, false)
           with
           | Not_found -> (None, fields, false)
@@ -491,7 +491,7 @@ struct
     | Obj (Dft {name = n; encoding = t; default = d}) -> (
         fun fields ->
           try
-            let (v, rest) = assoc [] n fields in
+            let v, rest = assoc [] n fields in
             (destruct ~bson_relaxation:false t v, rest, false)
           with
           | Not_found -> (d, fields, false)
@@ -501,13 +501,13 @@ struct
         let d1 = destruct_obj o1 in
         let d2 = destruct_obj o2 in
         fun fields ->
-          let (r1, rest, ign1) = d1 fields in
-          let (r2, rest, ign2) = d2 rest in
+          let r1, rest, ign1 = d1 fields in
+          let r2, rest, ign2 = d2 rest in
           ((r1, r2), rest, ign1 || ign2)
     | Conv (_, fto, t, _) ->
         let d = destruct_obj t in
         fun fields ->
-          let (r, rest, ign) = d fields in
+          let r, rest, ign = d fields in
           (fto r, rest, ign)
     | Mu {self} as enc -> destruct_obj (self enc)
     | Describe {encoding} -> destruct_obj encoding
@@ -518,7 +518,7 @@ struct
                 raise (Cannot_destruct ([], No_case_matched (List.rev errs)))
             | Case {encoding; inj} :: rest -> (
                 try
-                  let (r, rest, ign) = destruct_obj encoding fields in
+                  let r, rest, ign = destruct_obj encoding fields in
                   (inj r, rest, ign)
                 with err -> do_cases (err :: errs) rest)
           in
@@ -545,10 +545,10 @@ module Ezjsonm_encoding = Make (Json_repr.Ezjsonm)
 
 let patch_description ?title ?description (elt : Json_schema.element) =
   match (title, description) with
-  | (None, None) -> elt
-  | (Some _, None) -> {elt with title}
-  | (None, Some _) -> {elt with description}
-  | (Some _, Some _) -> {elt with title; description}
+  | None, None -> elt
+  | Some _, None -> {elt with title}
+  | None, Some _ -> {elt with description}
+  | Some _, Some _ -> {elt with title; description}
 
 let schema ?definitions_path encoding =
   let open Json_schema in
@@ -560,9 +560,7 @@ let schema ?definitions_path encoding =
           (fun (l2, b2, e2) ->
             ( l1 @ l2,
               b1 || b2,
-              match (e1, e2) with
-              | (Some e, _) | (_, Some e) -> Some e
-              | _ -> None ))
+              match (e1, e2) with Some e, _ | _, Some e -> Some e | _ -> None ))
           l2)
       l1
   in
@@ -657,7 +655,7 @@ let schema ?definitions_path encoding =
     | Float None -> element (Number numeric_specs)
     | Describe {id = name; title; description; encoding} ->
         let schema = patch_description ?title ?description (schema encoding) in
-        let (s, def) = add_definition ?definitions_path name schema !sch in
+        let s, def = add_definition ?definitions_path name schema !sch in
         sch := fst (merge_definitions (!sch, s)) ;
         def
     | Custom (_, s) ->
@@ -672,7 +670,7 @@ let schema ?definitions_path encoding =
           if definition_exists ?definitions_path name !sch then
             update (definition_ref ?definitions_path name) !sch
           else
-            let (sch, elt) =
+            let sch, elt =
               add_definition ?definitions_path name (element Dummy) !sch
             in
             update elt sch
@@ -685,7 +683,7 @@ let schema ?definitions_path encoding =
         let root =
           patch_description ?title ?description (schema (f fake_self))
         in
-        let (nsch, def) = add_definition ?definitions_path name root !sch in
+        let nsch, def = add_definition ?definitions_path name root !sch in
         sch := nsch ;
         def
     | Array t -> element (Monomorphic_array (schema t, array_specs))

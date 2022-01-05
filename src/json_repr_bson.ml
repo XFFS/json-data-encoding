@@ -173,12 +173,12 @@ module Repr = struct
                     let name = read_field_name () in
                     loop
                       ((name, box (Deserialized (`Float (read_float ()))))
-                       :: acc)
+                      :: acc)
                 | 0x02 ->
                     let name = read_field_name () in
                     loop
                       ((name, box (Deserialized (`String (read_string ()))))
-                       :: acc)
+                      :: acc)
                 | 0x08 ->
                     let name = read_field_name () in
                     loop
@@ -254,7 +254,7 @@ module Repr = struct
                   in
                   4 + acc + 1
               | `A cells ->
-                  let (acc, _) =
+                  let acc, _ =
                     List.fold_left
                       (fun (acc, i) bson ->
                         let self =

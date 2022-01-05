@@ -112,32 +112,32 @@ let path_of_json_pointer ?(wildcards = true) str =
 module Make (Repr : Json_repr.Repr) = struct
   let rec query path json =
     match (path, Repr.view json) with
-    | ([], _) -> json
-    | (`Field n :: rempath, `O ((n', v) :: rem)) ->
+    | [], _ -> json
+    | `Field n :: rempath, `O ((n', v) :: rem) ->
         if n = n' then query rempath v else query path (Repr.repr (`O rem))
-    | (`Index i :: rempath, `A cells) ->
+    | `Index i :: rempath, `A cells ->
         let i = if i < 0 then List.length cells - i else i in
         query rempath (List.nth cells i)
-    | (`Star :: rempath, `O ((_, v) :: rem)) -> (
+    | `Star :: rempath, `O ((_, v) :: rem) -> (
         try query rempath v with Not_found -> query path (Repr.repr (`O rem)))
-    | (`Star :: rempath, `A (v :: rem)) -> (
+    | `Star :: rempath, `A (v :: rem) -> (
         try query rempath v with Not_found -> query path (Repr.repr (`A rem)))
-    | (_, _) -> raise Not_found
+    | _, _ -> raise Not_found
 
   let query_all path json =
     let res = ref [] in
     let rec query path json =
       match (path, Repr.view json) with
-      | ([], _) -> res := json :: !res
-      | (`Field n :: rempath, `O ((n', v) :: rem)) ->
+      | [], _ -> res := json :: !res
+      | `Field n :: rempath, `O ((n', v) :: rem) ->
           if n = n' then query rempath v else query path (Repr.repr (`O rem))
-      | (`Index i :: rempath, `A cells) ->
+      | `Index i :: rempath, `A cells ->
           let i = if i < 0 then List.length cells - i else i in
           query rempath (List.nth cells i)
-      | (`Star :: rempath, `O fields) ->
+      | `Star :: rempath, `O fields ->
           List.iter (fun (_, v) -> query rempath v) fields
-      | (`Star :: rempath, `A cells) -> List.iter (query rempath) cells
-      | (_, _) -> ()
+      | `Star :: rempath, `A cells -> List.iter (query rempath) cells
+      | _, _ -> ()
     in
     query path json ;
     !res
@@ -160,15 +160,15 @@ module Make (Repr : Json_repr.Repr) = struct
   let merge l r =
     let rec merge path l r =
       match (Repr.view l, Repr.view r) with
-      | (`O l, `O r) ->
+      | `O l, `O r ->
           Repr.repr (`O (merge_fields path [] (sort_fields (l @ r))))
-      | (`Null, v) | (v, `Null) -> Repr.repr v
-      | (`A l, `A r) -> Repr.repr (`A (merge_cells path 0 [] l r))
+      | `Null, v | v, `Null -> Repr.repr v
+      | `A l, `A r -> Repr.repr (`A (merge_cells path 0 [] l r))
       | _ -> if equals l r then l else raise (Cannot_merge (List.rev path))
     and merge_cells path i acc l r =
       match (l, r) with
-      | ([], rem) | (rem, []) -> List.rev_append acc rem
-      | (l :: ls, r :: rs) ->
+      | [], rem | rem, [] -> List.rev_append acc rem
+      | l :: ls, r :: rs ->
           let item = merge (`Index i :: path) l r in
           merge_cells path (succ i) (item :: acc) ls rs
     and merge_fields path acc = function
@@ -202,36 +202,36 @@ module Make (Repr : Json_repr.Repr) = struct
       let root = Option.map Repr.view root in
       match (path, root) with
       (* create objects *)
-      | (`Field n :: rempath, None) -> Repr.repr (`O [(n, insert rempath)])
-      | ((`Index 0 | `Star | `Next) :: rempath, None) ->
+      | `Field n :: rempath, None -> Repr.repr (`O [(n, insert rempath)])
+      | (`Index 0 | `Star | `Next) :: rempath, None ->
           Repr.repr (`A [insert rempath])
-      | (`Index i :: rempath, None) ->
+      | `Index i :: rempath, None ->
           if i < 0 then raise (Cannot_merge (revpath path)) ;
           Repr.repr (`A (nulls [] (max 0 (pred i)) (insert rempath)))
-      | ([], None) -> value
+      | [], None -> value
       (* insert in existing *)
-      | ([], Some value') -> merge path value (Repr.repr value')
-      | (`Field n :: rempath, Some (`O fields)) ->
+      | [], Some value' -> merge path value (Repr.repr value')
+      | `Field n :: rempath, Some (`O fields) ->
           Repr.repr (`O (insert_fields [] n rempath fields))
-      | (`Index i :: rempath, Some (`A cells)) ->
+      | `Index i :: rempath, Some (`A cells) ->
           let i = if i < 0 then List.length cells - i else i in
           if i < 0 then raise (Cannot_merge (revpath path)) ;
           Repr.repr (`A (insert_cells [] i rempath cells))
-      | (`Next :: rempath, Some (`A cells)) ->
+      | `Next :: rempath, Some (`A cells) ->
           Repr.repr (`A (List.rev_append (List.rev cells) [insert rempath]))
       (* multiple insertions *)
-      | (`Star :: rempath, Some (`A cells)) ->
+      | `Star :: rempath, Some (`A cells) ->
           Repr.repr
             (`A (List_map.map_pure (fun root -> insert ~root rempath) cells))
-      | (`Star :: rempath, Some (`O fields)) ->
+      | `Star :: rempath, Some (`O fields) ->
           Repr.repr
             (`O
               (List_map.map_pure
                  (fun (n, root) -> (n, insert ~root rempath))
                  fields))
-      | ([`Star], Some root) -> merge path value (Repr.repr root)
+      | [`Star], Some root -> merge path value (Repr.repr root)
       (* FIXME: make explicit unhandled cases *)
-      | (_, Some _) -> raise (Cannot_merge (revpath path))
+      | _, Some _ -> raise (Cannot_merge (revpath path))
     and insert_fields acc n rempath fields =
       match fields with
       | [] -> List.rev ((n, insert rempath) :: acc)
@@ -240,9 +240,9 @@ module Make (Repr : Json_repr.Repr) = struct
       | other :: rem -> insert_fields (other :: acc) n rempath rem
     and insert_cells acc n rempath cells =
       match (cells, n) with
-      | ([], n) -> nulls acc n (insert rempath)
-      | (root :: rem, 0) -> List.rev_append (insert ~root rempath :: acc) rem
-      | (other :: rem, n) -> insert_cells (other :: acc) (n - 1) rempath rem
+      | [], n -> nulls acc n (insert rempath)
+      | root :: rem, 0 -> List.rev_append (insert ~root rempath :: acc) rem
+      | other :: rem, n -> insert_cells (other :: acc) (n - 1) rempath rem
     in
     insert ~root path
 

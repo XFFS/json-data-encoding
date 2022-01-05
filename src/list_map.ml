@@ -195,10 +195,8 @@ let chunked_tail_recursive_map_12 f l =
         let y3 = f x3 in
         let y2 = f x2 in
         let y1 = f x1 in
-        y1
-        ::
-        y2
-        :: y3 :: y4 :: y5 :: y6 :: y7 :: y8 :: y9 :: y10 :: y11 :: y12 :: suffix
+        y1 :: y2 :: y3 :: y4 :: y5 :: y6 :: y7 :: y8 :: y9 :: y10 :: y11 :: y12
+        :: suffix
   in
 
   let rec map_all_tail_chunks suffix chunks =

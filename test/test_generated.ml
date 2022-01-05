@@ -183,7 +183,7 @@ let map_int53 (i : int64) : testable =
   end)
 
 let map_range_int a b c : testable =
-  let (small, middle, big) =
+  let small, middle, big =
     match List.sort compare [a; b; c] with
     | [small; middle; big] ->
         assert (small <= middle) ;
@@ -208,7 +208,7 @@ let map_range_float a b c : testable =
     (* copout *)
     null
   else
-    let (small, middle, big) =
+    let small, middle, big =
       match List.sort compare [a; b; c] with
       | [small; middle; big] ->
           assert (small <= middle) ;
@@ -410,7 +410,7 @@ let map_mu_dup_list (t : testable) : testable =
               case
                 (tup2 T.ding mul)
                 (function x :: xs -> Some (x, xs) | [] -> None)
-                (function (x, xs) -> x :: xs);
+                (function x, xs -> x :: xs);
             ])
 
     let pp fmt = function

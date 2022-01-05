@@ -174,7 +174,7 @@ let pp ?(compact = false) ?(pp_string = pp_string) (type value)
     | `Bool true -> Format.fprintf ppf "true"
     | `Bool false -> Format.fprintf ppf "false"
     | `Float f ->
-        let (fract, intr) = modf f in
+        let fract, intr = modf f in
         if fract = 0.0 then Format.fprintf ppf "%.0f" intr
         else Format.fprintf ppf "%g" f
     | `String s -> pp_string ppf s
@@ -240,7 +240,7 @@ let to_yojson json =
     | `A values -> `List (List_map.map_pure aux values)
     | `O values -> `Assoc (List_map.map_pure (fun (k, v) -> (k, aux v)) values)
     | `Float f ->
-        let (fract, intr) = modf f in
+        let fract, intr = modf f in
         let max_intf = float 0x3F_FF_FF_FF in
         let min_intf = ~-.max_intf -. 1. in
         if fract = 0.0 then
