@@ -20,4 +20,5 @@ depends: [
   "crowbar" { with-test }
   "alcotest" { with-test }
   "ocamlformat" { = "0.20.1" & dev }
+  "odoc" { dev }
 ]
