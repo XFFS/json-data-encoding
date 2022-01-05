@@ -26,17 +26,22 @@
 let big_encoding =
   let open Json_encoding in
   list
-    (obj3 (req "z" (list null)) (req "o" (list bool)) (req "t" (list string)))
+    (obj3 (req "z" (list null)) (req "o" (seq bool)) (req "t" (array string)))
 
 let () = Random.self_init ()
 
 let string () = String.init 8 (fun _ -> Char.unsafe_chr (65 + Random.int 26))
 
+let bool i =
+  (* bools are placed in a Seq, which is re-evaluated, so the "randomness"
+     needs to be deterministic. *)
+  i mod 3 = 0 || i mod 5 = 0
+
 let o3 len =
   let len = max len 0 in
   ( List.init len (fun _ -> ()),
-    List.init len (fun _ -> Random.bool ()),
-    List.init len (fun _ -> string ()) )
+    Seq.unfold (fun l -> if l >= len then None else Some (bool l, l + 1)) 0,
+    Array.init len (fun _ -> string ()) )
 
 let big len = List.init len (fun _ -> o3 (len / 10))
 
