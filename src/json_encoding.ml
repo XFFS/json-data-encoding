@@ -1222,6 +1222,8 @@ let merge_tups t1 t2 =
 
 let list t = Conv (Array.of_list, Array.to_list, Array t, None)
 
+let seq t = Conv (Array.of_seq, Array.to_seq, Array t, None)
+
 let merge_objs o1 o2 =
   (* FIXME: check fields unicity *)
   let rec is_obj : type t. t encoding -> bool = function

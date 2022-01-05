@@ -351,6 +351,13 @@ val array : 'a encoding -> 'a array encoding
 (** An encoding of an OCaml list by a JSON one. *)
 val list : 'a encoding -> 'a list encoding
 
+(** An encoding of an OCaml {!Seq.t} by a JSON array.
+
+    The JSON form is indistinguishable from that of a list. In other words,
+    [construct (list e) (List.of_seq s)] is the same JSON value as
+    [construct (seq e) s]. *)
+val seq : 'a encoding -> 'a Seq.t encoding
+
 (** An encoding of an OCaml associative list by a JSON object. *)
 val assoc : 'a encoding -> (string * 'a) list encoding
 

@@ -182,6 +182,21 @@ let map_int32_list (i : int32) : testable =
     let eq = List.equal Int32.equal
   end)
 
+let map_int32_seq (i : int32) : testable =
+  (module struct
+    type t = int32 Seq.t
+
+    let v =
+      let open Int32 in
+      List.to_seq [i; add i 1l; add i 2l; add i 4l; add i 8l; add i 16l]
+
+    let ding = Json_encoding.(seq int32)
+
+    let pp fmt s = Crowbar.(pp_list pp_int32) fmt (List.of_seq s)
+
+    let eq s1 s2 = List.equal Int32.equal (List.of_seq s1) (List.of_seq s2)
+  end)
+
 let lower_bound_53 = Int64.(neg @@ shift_left 1L 53)
 
 let upper_bound_53 = Int64.shift_left 1L 53
@@ -496,6 +511,40 @@ let map_dup_list (t : testable) : testable =
       | _ -> assert false
 
     let eq = List.equal T.eq
+  end)
+
+let map_singleton_seq (t : testable) : testable =
+  let module T = (val t) in
+  (module struct
+    type t = T.t Seq.t
+
+    let v = List.to_seq [T.v]
+
+    let ding = Json_encoding.seq T.ding
+
+    let pp fmt s =
+      match List.of_seq s with
+      | [v] -> Format.fprintf fmt "[%a]" T.pp v
+      | _ -> assert false
+
+    let eq s1 s2 = List.equal T.eq (List.of_seq s1) (List.of_seq s2)
+  end)
+
+let map_dup_seq (t : testable) : testable =
+  let module T = (val t) in
+  (module struct
+    type t = T.t Seq.t
+
+    let v = List.to_seq [T.v; T.v]
+
+    let ding = Json_encoding.seq T.ding
+
+    let pp fmt s =
+      match List.of_seq s with
+      | [v; w] -> Format.fprintf fmt "[%a; %a]" T.pp v T.pp w
+      | _ -> assert false
+
+    let eq s1 s2 = List.equal T.eq (List.of_seq s1) (List.of_seq s2)
   end)
 
 let map_some (t : testable) : testable =
@@ -1061,6 +1110,7 @@ let gen =
             map [int32] map_int32;
             map [int32] map_int32_conv;
             map [int32] map_int32_list;
+            map [int32] map_int32_seq;
             map [int64] map_int53;
             map [float; float; float] map_range_float;
             map [bool] map_bool;
@@ -1085,6 +1135,8 @@ let gen =
             map [range 3] enum;
             map [g] map_singleton_list;
             map [g] map_dup_list;
+            map [g] map_singleton_seq;
+            map [g] map_dup_seq;
             map [g] map_def;
             map [g] map_conv_id;
             map [g] map_conv_obj;
