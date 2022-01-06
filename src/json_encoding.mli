@@ -348,7 +348,7 @@ val merge_objs : 'o1 encoding -> 'o2 encoding -> ('o1 * 'o2) encoding
 (** An encoding of an OCaml array by a JSON one. *)
 val array : 'a encoding -> 'a array encoding
 
-(** An encoding of an OCaml list by a JSON one. *)
+(** An encoding of an OCaml list by a JSON array. *)
 val list : 'a encoding -> 'a list encoding
 
 (** An encoding of an OCaml {!Seq.t} by a JSON array.
