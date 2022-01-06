@@ -23,6 +23,9 @@
 (*                                                                           *)
 (*****************************************************************************)
 
+(* The first test verifies that side-effects of a sequence are only made as the
+   lexeme sequence is being forced. This shows the encoding is lazy. *)
+
 let e =
   let open Json_encoding in
   seq unit
@@ -65,3 +68,25 @@ let () =
   consume 0 lexeme_seq ;
   assert (!witness = 5) ;
   Printf.printf "Success for lazily seq streaming\n%!"
+
+(* The second test verifies that we can pull thoushands of items from a sequence
+   without running into major issues such as stack overflow. *)
+
+let e = Json_encoding.(seq int32)
+
+let rec v i () = Seq.Cons (i, v (Int32.succ i))
+
+let v = v 0l
+
+let () =
+  Printf.printf "Testing infinite seq streaming\n%!" ;
+  let lexeme_seq = Json_encoding.construct_seq e v in
+  let rec consume n s =
+    if n <= 0 then ()
+    else
+      match s () with
+      | Seq.Cons (_, s) -> consume (n - 1) s
+      | Seq.Nil -> assert false
+  in
+  consume 100_000_000 lexeme_seq ;
+  Printf.printf "Success for infinite seq streaming\n%!"
