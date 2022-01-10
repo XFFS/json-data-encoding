@@ -1,4 +1,5 @@
 (tests
  (names test_generated test_big_streaming test_mu test_list_map
-   test_list_map_side_effects test_bson_relaxation test_seq_is_lazy)
- (libraries json-data-encoding json-data-encoding-bson crowbar alcotest))
+   test_list_map_side_effects test_seq_is_lazy)
+ (libraries json-data-encoding crowbar alcotest)
+ (package json-data-encoding))
