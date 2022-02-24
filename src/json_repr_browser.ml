@@ -74,7 +74,7 @@ type value = Repr.value
 
 let js_stringify ?indent obj =
   Js.Unsafe.meth_call
-    (Js.Unsafe.variable "JSON")
+    (Js.Unsafe.pure_js_expr "JSON")
     "stringify"
     (match indent with
     | None -> [|Js.Unsafe.inject obj|]
@@ -87,7 +87,7 @@ let js_stringify ?indent obj =
 
 let parse_js_string jsstr =
   Js.Unsafe.meth_call
-    (Js.Unsafe.variable "JSON")
+    (Js.Unsafe.pure_js_expr "JSON")
     "parse"
     [|Js.Unsafe.inject jsstr|]
 
