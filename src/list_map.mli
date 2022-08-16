@@ -13,3 +13,5 @@
     a pure function as argument. This is why the name [map_pure] is chosen.
 *)
 val map_pure : ('a -> 'b) -> 'a list -> 'b list
+
+val mapi_pure : (int -> 'a -> 'b) -> 'a list -> 'b list

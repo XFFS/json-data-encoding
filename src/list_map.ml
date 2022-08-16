@@ -62,6 +62,39 @@ let rec plain_unrolled_prefix_5 map_suffix count f l =
       let y1 = f x1 in
       y1 :: y2 :: y3 :: y4 :: y5 :: tail
 
+let rec plain_unrolled_prefix_5i map_suffix count i f l =
+  match l with
+  | [] -> []
+  | [x1] ->
+      let y1 = f i x1 in
+      [y1]
+  | [x1; x2] ->
+      let y2 = f (i + 1) x2 in
+      let y1 = f i x1 in
+      [y1; y2]
+  | [x1; x2; x3] ->
+      let y3 = f (i + 2) x3 in
+      let y2 = f (i + 1) x2 in
+      let y1 = f i x1 in
+      [y1; y2; y3]
+  | [x1; x2; x3; x4] ->
+      let y4 = f (i + 3) x4 in
+      let y3 = f (i + 2) x3 in
+      let y2 = f (i + 1) x2 in
+      let y1 = f i x1 in
+      [y1; y2; y3; y4]
+  | x1 :: x2 :: x3 :: x4 :: x5 :: tail ->
+      let tail =
+        if count <= 0 then map_suffix i f tail
+        else plain_unrolled_prefix_5i map_suffix (count - 1) (i + 5) f tail
+      in
+      let y5 = f (i + 4) x5 in
+      let y4 = f (i + 3) x4 in
+      let y3 = f (i + 2) x3 in
+      let y2 = f (i + 1) x2 in
+      let y1 = f i x1 in
+      y1 :: y2 :: y3 :: y4 :: y5 :: tail
+
 (* Fast tail-recursive map for the list suffix. *)
 let chunked_tail_recursive_map_12 f l =
   let rec split chunks l =
@@ -214,10 +247,166 @@ let chunked_tail_recursive_map_12 f l =
   | [] -> []
   | first :: rest -> map_all_tail_chunks (map_head_chunk first) rest
 
+let chunked_tail_recursive_mapi_12 i f l =
+  let rec split i chunks l =
+    match l with
+    | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: tail ->
+        (split (i + 12) [@ocaml.tailcall]) ((i, l) :: chunks) tail
+    | _ -> (i, l) :: chunks
+  in
+
+  let map_head_chunk i chunk =
+    match[@ocaml.warning "-8"] chunk with
+    | [] -> []
+    | [x1] ->
+        let y1 = f i x1 in
+        [y1]
+    | [x1; x2] ->
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2]
+    | [x1; x2; x3] ->
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3]
+    | [x1; x2; x3; x4] ->
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4]
+    | [x1; x2; x3; x4; x5] ->
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4; y5]
+    | [x1; x2; x3; x4; x5; x6] ->
+        let y6 = f (i + 5) x6 in
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4; y5; y6]
+    | [x1; x2; x3; x4; x5; x6; x7] ->
+        let y7 = f (i + 6) x7 in
+        let y6 = f (i + 5) x6 in
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4; y5; y6; y7]
+    | [x1; x2; x3; x4; x5; x6; x7; x8] ->
+        let y8 = f (i + 7) x8 in
+        let y7 = f (i + 6) x7 in
+        let y6 = f (i + 5) x6 in
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4; y5; y6; y7; y8]
+    | [x1; x2; x3; x4; x5; x6; x7; x8; x9] ->
+        let y9 = f (i + 8) x9 in
+        let y8 = f (i + 7) x8 in
+        let y7 = f (i + 6) x7 in
+        let y6 = f (i + 5) x6 in
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4; y5; y6; y7; y8; y9]
+    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10] ->
+        let y10 = f i x10 in
+        let y9 = f (i + 8) x9 in
+        let y8 = f (i + 7) x8 in
+        let y7 = f (i + 6) x7 in
+        let y6 = f (i + 5) x6 in
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10]
+    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11] ->
+        let y11 = f (i + 10) x11 in
+        let y10 = f (i + 9) x10 in
+        let y9 = f (i + 8) x9 in
+        let y8 = f (i + 7) x8 in
+        let y7 = f (i + 6) x7 in
+        let y6 = f (i + 5) x6 in
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10; y11]
+    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11; x12] ->
+        let y12 = f (i + 11) x12 in
+        let y11 = f (i + 10) x11 in
+        let y10 = f (i + 9) x10 in
+        let y9 = f (i + 8) x9 in
+        let y8 = f (i + 7) x8 in
+        let y7 = f (i + 6) x7 in
+        let y6 = f (i + 5) x6 in
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10; y11; y12]
+  in
+
+  let map_tail_chunk suffix (i, chunk) =
+    match[@ocaml.warning "-8"] chunk with
+    | x1
+      :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: _
+      ->
+        let y12 = f (i + 11) x12 in
+        let y11 = f (i + 10) x11 in
+        let y10 = f (i + 9) x10 in
+        let y9 = f (i + 8) x9 in
+        let y8 = f (i + 7) x8 in
+        let y7 = f (i + 6) x7 in
+        let y6 = f (i + 5) x6 in
+        let y5 = f (i + 4) x5 in
+        let y4 = f (i + 3) x4 in
+        let y3 = f (i + 2) x3 in
+        let y2 = f (i + 1) x2 in
+        let y1 = f i x1 in
+        y1 :: y2 :: y3 :: y4 :: y5 :: y6 :: y7 :: y8 :: y9 :: y10 :: y11 :: y12
+        :: suffix
+  in
+
+  let rec map_all_tail_chunks suffix chunks =
+    match chunks with
+    | [] -> suffix
+    | chunk :: more ->
+        (map_all_tail_chunks [@ocaml.tailcall])
+          (map_tail_chunk suffix chunk)
+          more
+  in
+
+  let chunks = split i [] l in
+
+  match chunks with
+  | [] -> []
+  | (i, first) :: rest -> map_all_tail_chunks (map_head_chunk i first) rest
+
 (* Combines the 5x unrolled non-tail-recursive map for a prefix of 5000
    elements, followed by the tail-recursive new fast map for the remainder. *)
 let faster_map f l =
   plain_unrolled_prefix_5 chunked_tail_recursive_map_12 1000 f l
 
+let faster_mapi f l =
+  plain_unrolled_prefix_5i chunked_tail_recursive_mapi_12 1000 0 f l
+
 (* wrapper that is actually exported *)
 let map_pure f l = faster_map f l
+
+let mapi_pure f l = faster_mapi f l

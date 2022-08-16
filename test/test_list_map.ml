@@ -42,3 +42,19 @@ let genl =
 let test f l = Crowbar.check_eq (Stdlib.List.map f l) (List_map.map_pure f l)
 
 let () = Crowbar.add_test ~name:"tail-rec list map" [genf; genl] test
+
+let genfi =
+  let open Crowbar in
+  choose
+    [
+      const ( + );
+      const ( * );
+      const Stdlib.max;
+      const Stdlib.min;
+      const (fun _ _ -> 0);
+      const (fun i v -> Stdlib.max i (Stdlib.min 1024 v));
+    ]
+
+let testi f l = Crowbar.check_eq (Stdlib.List.mapi f l) (List_map.mapi_pure f l)
+
+let () = Crowbar.add_test ~name:"tail-rec list mapi" [genfi; genl] testi
