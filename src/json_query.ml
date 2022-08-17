@@ -161,7 +161,8 @@ module Make (Repr : Json_repr.Repr) = struct
     let rec merge path l r =
       match (Repr.view l, Repr.view r) with
       | `O l, `O r ->
-          Repr.repr (`O (merge_fields path [] (sort_fields (l @ r))))
+          Repr.repr
+            (`O (merge_fields path [] (sort_fields (List.rev_append l r))))
       | `Null, v | v, `Null -> Repr.repr v
       | `A l, `A r -> Repr.repr (`A (merge_cells path 0 [] l r))
       | _ -> if equals l r then l else raise (Cannot_merge (List.rev path))
@@ -182,17 +183,19 @@ module Make (Repr : Json_repr.Repr) = struct
     merge [] l r
 
   let insert ?(merge = merge) path value root =
-    let revpath sub =
+    let norevpath sub =
       let rec loop acc = function
-        | l when l == sub -> List.rev acc
+        | l when l == sub -> acc
         | item :: items -> loop (item :: acc) items
         | [] -> (* absurd *) assert false
       in
       loop [] path
     in
+    let revpath sub = List.rev (norevpath sub) in
     let merge path l r =
       try merge l r
-      with Cannot_merge sub -> raise (Cannot_merge (revpath path @ sub))
+      with Cannot_merge sub ->
+        raise (Cannot_merge (List.rev_append (norevpath path) sub))
     in
     let rec nulls acc n last =
       if n <= 0 then List.rev (last :: acc)

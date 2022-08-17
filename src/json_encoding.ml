@@ -237,7 +237,8 @@ struct
           function
           | v1, v2 -> (
               match (Repr.view (w1 v1), Repr.view (w2 v2)) with
-              | `O l1, `O l2 -> Repr.repr (`O (l1 @ l2))
+              | `O l1, `O l2 ->
+                  Repr.repr (`O (List.rev_append (List.rev l1) l2))
               | `Null, `Null | _ ->
                   invalid_arg
                     "Json_encoding.construct: consequence of bad merge_objs"))
@@ -250,7 +251,8 @@ struct
           function
           | v1, v2 -> (
               match (Repr.view (w1 v1), Repr.view (w2 v2)) with
-              | `A l1, `A l2 -> Repr.repr (`A (l1 @ l2))
+              | `A l1, `A l2 ->
+                  Repr.repr (`A (List.rev_append (List.rev l1) l2))
               | _ ->
                   invalid_arg
                     "Json_encoding.construct: consequence of bad merge_tups"))
@@ -591,7 +593,7 @@ let schema ?definitions_path encoding =
       (fun (l1, b1, e1) ->
         List_map.map_pure
           (fun (l2, b2, e2) ->
-            ( l1 @ l2,
+            ( List.rev_append (List.rev l1) l2,
               b1 || b2,
               match (e1, e2) with Some e, _ | _, Some e -> Some e | _ -> None ))
           l2)
@@ -653,14 +655,20 @@ let schema ?definitions_path encoding =
         | l -> l)
     | Conv (_, _, _, Some _) (* FIXME: We could do better *) | _ ->
         invalid_arg "Json_encoding.schema: consequence of bad merge_objs"
-  and array_schema : type t. t encoding -> element list = function
-    | Conv (_, _, o, None) -> array_schema o
-    | Tup t -> [schema t]
-    | Tups (t1, t2) -> array_schema t1 @ array_schema t2
-    | Mu {self} as enc -> array_schema (self enc)
-    | Describe {encoding = t} -> array_schema t
+  and array_schema_acc : type t. element list -> t encoding -> element list =
+   fun acc enc ->
+    match enc with
+    | Conv (_, _, o, None) -> array_schema_acc acc o
+    | Tup t -> schema t :: acc
+    | Tups (t1, t2) ->
+        let acc = array_schema_acc acc t1 in
+        array_schema_acc acc t2
+    | Mu {self} as enc -> array_schema_acc acc (self enc)
+    | Describe {encoding = t} -> array_schema_acc acc t
     | Conv (_, _, _, Some _) (* FIXME: We could do better *) | _ ->
         invalid_arg "Json_encoding.schema: consequence of bad merge_tups"
+  and array_schema : type t. t encoding -> element list =
+   fun enc -> List.rev (array_schema_acc [] enc)
   and schema : type t. t encoding -> element = function
     | Null -> element Null
     | Empty -> element (Object {object_specs with additional_properties = None})

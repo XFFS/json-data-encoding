@@ -64,7 +64,10 @@ module Repr = struct
                         o){if(o.hasOwnProperty(n)){p.push(n);}}  return p;})")
                     [|Js.Unsafe.inject v|])
           in
-          `O (List.map (fun f -> (Js.to_string f, Js.Unsafe.get v f)) fields)
+          `O
+            (List_map.map_pure
+               (fun f -> (Js.to_string f, Js.Unsafe.get v f))
+               fields)
     | _ -> invalid_arg "Json_repr_browser.Repr.view"
 
   let repr_uid = Json_repr.repr_uid ()
