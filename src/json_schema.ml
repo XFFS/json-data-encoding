@@ -595,174 +595,200 @@ module Make (Repr : Json_repr.Repr) = struct
   let to_json schema =
     (* functional JSON building combinators *)
     let obj l = Repr.repr (`O l) in
-    let set_always f v = [(f, Repr.repr v)] in
-    let set_if_some f v cb =
-      match v with None -> [] | Some v -> [(f, Repr.repr (cb v))]
+    let set_always f v rest = (f, Repr.repr v) :: rest in
+    let set_if_some f v cb rest =
+      match v with None -> rest | Some v -> (f, Repr.repr (cb v)) :: rest
     in
-    let set_if_cons f v cb =
-      match v with [] -> [] | v -> [(f, Repr.repr (cb v))]
+    let set_if_cons f v cb rest =
+      match v with [] -> rest | v -> (f, Repr.repr (cb v)) :: rest
     in
-    let set_if_neq f v v' cb =
-      if v <> v' then [(f, Repr.repr (cb v))] else []
+    let set_if_neq f v v' cb rest =
+      if v <> v' then (f, Repr.repr (cb v)) :: rest else rest
     in
+    let set_multiple xs rest = List.rev_append xs rest in
     (* recursive encoder *)
     let rec format_element {title; description; default; enum; kind; format} =
       set_if_some "title" title (fun s -> `String s)
-      @ set_if_some "description" description (fun s -> `String s)
-      @ (match kind with
-        | Object specs ->
-            let required =
-              List.fold_left
-                (fun r (n, _, p, _) ->
-                  if p then Repr.repr (`String n) :: r else r)
-                []
-                specs.properties
-            in
-            let properties =
-              List_map.map_pure
-                (fun (n, elt, _, _) -> (n, obj (format_element elt)))
-                specs.properties
-            in
-            set_always "type" (`String "object")
-            @ set_if_cons "properties" properties (fun l -> `O l)
-            @ set_if_cons "required" required (fun l -> `A l)
-            @ set_if_cons
-                "patternProperties"
-                specs.pattern_properties
-                (fun fs ->
-                  `O
-                    (List_map.map_pure
-                       (fun (n, elt) -> (n, obj (format_element elt)))
-                       fs))
-            @ set_if_neq
-                "additionalProperties"
-                specs.additional_properties
-                (Some (element Any))
-                (function
-                  | None -> `Bool false | Some elt -> `O (format_element elt))
-            @ set_if_neq "minProperties" specs.min_properties 0 (fun i ->
-                  `Float (float i))
-            @ set_if_some "maxProperties" specs.max_properties (fun i ->
-                  `Float (float i))
-            @ set_if_cons
-                "schemaDependencies"
-                specs.schema_dependencies
-                (fun fs ->
-                  `O
-                    (List_map.map_pure
-                       (fun (n, elt) -> (n, obj (format_element elt)))
-                       fs))
-            @ set_if_cons
-                "propertyDependencies"
-                specs.property_dependencies
-                (fun fs ->
-                  let property_dependencies =
-                    let strings ls =
-                      List_map.map_pure (fun s -> Repr.repr (`String s)) ls
-                    in
-                    List_map.map_pure
-                      (fun (n, ls) -> (n, Repr.repr (`A (strings ls))))
-                      fs
-                  in
-                  `O property_dependencies)
-        | Array (elts, specs) ->
-            set_always "type" (`String "array")
-            @ set_always
-                "items"
-                (`A
-                  (List_map.map_pure (fun elt -> obj (format_element elt)) elts))
-            @ set_if_neq "minItems" specs.min_items 0 (fun i ->
-                  `Float (float i))
-            @ set_if_some "maxItems" specs.max_items (fun i -> `Float (float i))
-            @ set_if_neq "uniqueItems" specs.unique_items false (fun b ->
-                  `Bool b)
-            @ set_if_neq
-                "additionalItems"
-                specs.additional_items
-                (Some (element Any))
-                (function
-                  | None -> `Bool false | Some elt -> `O (format_element elt))
-        | Monomorphic_array (elt, {min_items; max_items; unique_items}) ->
-            set_always "type" (`String "array")
-            @ set_always "items" (`O (format_element elt))
-            @ set_if_neq "minItems" min_items 0 (fun i -> `Float (float i))
-            @ set_if_some "maxItems" max_items (fun i -> `Float (float i))
-            @ set_if_neq "uniqueItems" unique_items false (fun b -> `Bool b)
-        | Combine (c, elts) ->
-            let combinator = function
-              | Any_of -> "anyOf"
-              | One_of -> "oneOf"
-              | All_of -> "allOf"
-              | Not -> "not"
-            in
-            set_always
-              (combinator c)
-              (`A
-                (List_map.map_pure (fun elt -> obj (format_element elt)) elts))
-        | Def_ref path ->
-            set_always "$ref" (`String ("#" ^ json_pointer_of_path path))
-        | Id_ref name -> set_always "$ref" (`String ("#" ^ name))
-        | Ext_ref uri -> set_always "$ref" (`String (Uri.to_string uri))
-        | Integer specs -> (
-            set_always "type" (`String "integer")
-            @ set_if_some "multipleOf" specs.multiple_of (fun v -> `Float v)
-            @ (match specs.minimum with
-              | None -> []
-              | Some (v, `Inclusive) -> [("minimum", Repr.repr (`Float v))]
-              | Some (v, `Exclusive) ->
-                  [
-                    ("minimum", Repr.repr (`Float v));
-                    ("exclusiveMinimum", Repr.repr (`Bool true));
-                  ])
-            @
-            match specs.maximum with
-            | None -> []
-            | Some (v, `Inclusive) -> [("maximum", Repr.repr (`Float v))]
-            | Some (v, `Exclusive) ->
-                [
-                  ("maximum", Repr.repr (`Float v));
-                  ("exclusiveMaximum", Repr.repr (`Bool true));
-                ])
-        | Number specs -> (
-            set_always "type" (`String "number")
-            @ set_if_some "multipleOf" specs.multiple_of (fun v -> `Float v)
-            @ (match specs.minimum with
-              | None -> []
-              | Some (v, `Inclusive) -> [("minimum", Repr.repr (`Float v))]
-              | Some (v, `Exclusive) ->
-                  [
-                    ("minimum", Repr.repr (`Float v));
-                    ("exclusiveMinimum", Repr.repr (`Bool true));
-                  ])
-            @
-            match specs.maximum with
-            | None -> []
-            | Some (v, `Inclusive) -> [("maximum", Repr.repr (`Float v))]
-            | Some (v, `Exclusive) ->
-                [
-                  ("maximum", Repr.repr (`Float v));
-                  ("exclusiveMaximum", Repr.repr (`Bool true));
-                ])
-        | String {pattern; min_length; max_length; str_format} ->
-            set_always "type" (`String "string")
-            @ set_if_neq "minLength" min_length 0 (fun i -> `Float (float i))
-            @ set_if_some "maxLength" max_length (fun i -> `Float (float i))
-            @ set_if_some "pattern" pattern (fun s -> `String s)
-            @ set_if_some "format" str_format (fun s -> `String s)
-        | Boolean -> set_always "type" (`String "boolean")
-        | Null -> set_always "type" (`String "null")
-        | Dummy -> invalid_arg "Json_schema.to_json: remaining dummy element"
-        | Any -> [])
-      @ set_if_some "default" default (fun j ->
-            Repr.view (Json_repr.any_to_repr (module Repr) j))
-      @ set_if_some "enum" enum (fun js ->
-            `A (List_map.map_pure (Json_repr.any_to_repr (module Repr)) js))
-      @ set_if_some "format" format (fun s -> `String s)
+      @@ set_if_some "description" description (fun s -> `String s)
+      @@ (fun rest ->
+           match kind with
+           | Object specs ->
+               let required =
+                 List.fold_left
+                   (fun r (n, _, p, _) ->
+                     if p then Repr.repr (`String n) :: r else r)
+                   []
+                   specs.properties
+               in
+               let properties =
+                 List_map.map_pure
+                   (fun (n, elt, _, _) -> (n, obj (format_element elt)))
+                   specs.properties
+               in
+               set_always "type" (`String "object")
+               @@ set_if_cons "properties" properties (fun l -> `O l)
+               @@ set_if_cons "required" required (fun l -> `A l)
+               @@ set_if_cons
+                    "patternProperties"
+                    specs.pattern_properties
+                    (fun fs ->
+                      `O
+                        (List_map.map_pure
+                           (fun (n, elt) -> (n, obj (format_element elt)))
+                           fs))
+               @@ set_if_neq
+                    "additionalProperties"
+                    specs.additional_properties
+                    (Some (element Any))
+                    (function
+                      | None -> `Bool false
+                      | Some elt -> `O (format_element elt))
+               @@ set_if_neq "minProperties" specs.min_properties 0 (fun i ->
+                      `Float (float i))
+               @@ set_if_some "maxProperties" specs.max_properties (fun i ->
+                      `Float (float i))
+               @@ set_if_cons
+                    "schemaDependencies"
+                    specs.schema_dependencies
+                    (fun fs ->
+                      `O
+                        (List_map.map_pure
+                           (fun (n, elt) -> (n, obj (format_element elt)))
+                           fs))
+               @@ set_if_cons
+                    "propertyDependencies"
+                    specs.property_dependencies
+                    (fun fs ->
+                      let property_dependencies =
+                        let strings ls =
+                          List_map.map_pure (fun s -> Repr.repr (`String s)) ls
+                        in
+                        List_map.map_pure
+                          (fun (n, ls) -> (n, Repr.repr (`A (strings ls))))
+                          fs
+                      in
+                      `O property_dependencies)
+               @@ rest
+           | Array (elts, specs) ->
+               set_always "type" (`String "array")
+               @@ set_always
+                    "items"
+                    (`A
+                      (List_map.map_pure
+                         (fun elt -> obj (format_element elt))
+                         elts))
+               @@ set_if_neq "minItems" specs.min_items 0 (fun i ->
+                      `Float (float i))
+               @@ set_if_some "maxItems" specs.max_items (fun i ->
+                      `Float (float i))
+               @@ set_if_neq "uniqueItems" specs.unique_items false (fun b ->
+                      `Bool b)
+               @@ set_if_neq
+                    "additionalItems"
+                    specs.additional_items
+                    (Some (element Any))
+                    (function
+                      | None -> `Bool false
+                      | Some elt -> `O (format_element elt))
+               @@ rest
+           | Monomorphic_array (elt, {min_items; max_items; unique_items}) ->
+               set_always "type" (`String "array")
+               @@ set_always "items" (`O (format_element elt))
+               @@ set_if_neq "minItems" min_items 0 (fun i -> `Float (float i))
+               @@ set_if_some "maxItems" max_items (fun i -> `Float (float i))
+               @@ set_if_neq "uniqueItems" unique_items false (fun b -> `Bool b)
+               @@ rest
+           | Combine (c, elts) ->
+               let combinator = function
+                 | Any_of -> "anyOf"
+                 | One_of -> "oneOf"
+                 | All_of -> "allOf"
+                 | Not -> "not"
+               in
+               set_always
+                 (combinator c)
+                 (`A
+                   (List_map.map_pure
+                      (fun elt -> obj (format_element elt))
+                      elts))
+               @@ rest
+           | Def_ref path ->
+               set_always "$ref" (`String ("#" ^ json_pointer_of_path path))
+               @@ rest
+           | Id_ref name -> set_always "$ref" (`String ("#" ^ name)) @@ rest
+           | Ext_ref uri ->
+               set_always "$ref" (`String (Uri.to_string uri)) @@ rest
+           | Integer specs ->
+               set_always "type" (`String "integer")
+               @@ set_if_some "multipleOf" specs.multiple_of (fun v -> `Float v)
+               @@ set_multiple
+                    (match specs.minimum with
+                    | None -> []
+                    | Some (v, `Inclusive) ->
+                        [("minimum", Repr.repr (`Float v))]
+                    | Some (v, `Exclusive) ->
+                        [
+                          ("exclusiveMinimum", Repr.repr (`Bool true));
+                          ("minimum", Repr.repr (`Float v));
+                        ])
+               @@ set_multiple
+                    (match specs.maximum with
+                    | None -> []
+                    | Some (v, `Inclusive) ->
+                        [("maximum", Repr.repr (`Float v))]
+                    | Some (v, `Exclusive) ->
+                        [
+                          ("exclusiveMaximum", Repr.repr (`Bool true));
+                          ("maximum", Repr.repr (`Float v));
+                        ])
+               @@ rest
+           | Number specs ->
+               set_always "type" (`String "number")
+               @@ set_if_some "multipleOf" specs.multiple_of (fun v -> `Float v)
+               @@ set_multiple
+                    (match specs.minimum with
+                    | None -> []
+                    | Some (v, `Inclusive) ->
+                        [("minimum", Repr.repr (`Float v))]
+                    | Some (v, `Exclusive) ->
+                        [
+                          ("exclusiveMinimum", Repr.repr (`Bool true));
+                          ("minimum", Repr.repr (`Float v));
+                        ])
+               @@ set_multiple
+                    (match specs.maximum with
+                    | None -> []
+                    | Some (v, `Inclusive) ->
+                        [("maximum", Repr.repr (`Float v))]
+                    | Some (v, `Exclusive) ->
+                        [
+                          ("exclusiveMaximum", Repr.repr (`Bool true));
+                          ("maximum", Repr.repr (`Float v));
+                        ])
+               @@ rest
+           | String {pattern; min_length; max_length; str_format} ->
+               set_always "type" (`String "string")
+               @@ set_if_neq "minLength" min_length 0 (fun i ->
+                      `Float (float i))
+               @@ set_if_some "maxLength" max_length (fun i -> `Float (float i))
+               @@ set_if_some "pattern" pattern (fun s -> `String s)
+               @@ set_if_some "format" str_format (fun s -> `String s)
+               @@ rest
+           | Boolean -> set_always "type" (`String "boolean") @@ rest
+           | Null -> set_always "type" (`String "null") @@ rest
+           | Dummy -> invalid_arg "Json_schema.to_json: remaining dummy element"
+           | Any -> set_multiple [] @@ rest)
+      @@ set_if_some "default" default (fun j ->
+             Repr.view (Json_repr.any_to_repr (module Repr) j))
+      @@ set_if_some "enum" enum (fun js ->
+             `A (List_map.map_pure (Json_repr.any_to_repr (module Repr)) js))
+      @@ set_if_some "format" format (fun s -> `String s)
+      @@ []
     in
     List.fold_left
       (fun acc (n, elt) -> insert n (obj (format_element elt)) acc)
       (obj
-         (set_always "$schema" (`String version) @ format_element schema.root))
+         (set_always "$schema" (`String version) @@ format_element schema.root))
       schema.definitions
 
   let unexpected kind expected =
@@ -783,7 +809,7 @@ module Make (Repr : Json_repr.Repr) = struct
   (*-- parser ----------------------------------------------------------------*)
 
   let at_path p = function
-    | Cannot_parse (l, err) -> Cannot_parse (p @ l, err)
+    | Cannot_parse (l, err) -> Cannot_parse (List.rev_append (List.rev p) l, err)
     | exn -> exn
 
   let at_field n = at_path [`Field n]
@@ -964,20 +990,24 @@ module Make (Repr : Json_repr.Repr) = struct
                 let kind = Combine (combinator, cases) in
                 Some (element kind)
           in
-          match opt_field_view json name with
-          | Some (`A (_ :: _ as cases)) (* list of schemas *) ->
-              let rec items i acc = function
-                | elt :: tl ->
-                    let elt =
-                      try parse_element source elt
-                      with err -> raise (at_field name @@ at_index i @@ err)
-                    in
-                    items (succ i) (elt :: acc) tl
-                | [] -> build (others @ List.rev acc)
-              in
-              items 0 [] cases
-          | None -> build others
-          | Some k -> raise (at_field name @@ unexpected k "a list of elements")
+          let items =
+            match opt_field_view json name with
+            | Some (`A (_ :: _ as cases)) (* list of schemas *) ->
+                let rec items i acc = function
+                  | elt :: tl ->
+                      let elt =
+                        try parse_element source elt
+                        with err -> raise (at_field name @@ at_index i @@ err)
+                      in
+                      items (succ i) (elt :: acc) tl
+                  | [] -> List.rev acc
+                in
+                items 0 [] cases
+            | None -> []
+            | Some k ->
+                raise (at_field name @@ unexpected k "a list of elements")
+          in
+          build (List.rev_append others items)
         in
         (* 4. Negated schema *)
         let as_not =
@@ -1011,7 +1041,8 @@ module Make (Repr : Json_repr.Repr) = struct
         let as_any_of = as_nary "anyOf" Any_of [] in
         let cases =
           let ( @? ) o xs = match o with None -> xs | Some x -> x :: xs in
-          as_kind @? as_ref @? as_not @? as_one_of @? as_any_of @? []
+          (* Note: building this reversed so we can use [rev_append] *)
+          as_any_of @? as_one_of @? as_not @? as_ref @? as_kind @? []
         in
         let kind =
           match as_nary "allOf" All_of cases with
