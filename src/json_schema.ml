@@ -1009,8 +1009,10 @@ module Make (Repr : Json_repr.Repr) = struct
         (* combine all specifications under a big conjunction *)
         let as_one_of = as_nary "oneOf" One_of [] in
         let as_any_of = as_nary "anyOf" Any_of [] in
-        let all = [as_kind; as_ref; as_not; as_one_of; as_any_of] in
-        let cases = List.filter_map (fun x -> x) all in
+        let cases =
+          let ( @? ) o xs = match o with None -> xs | Some x -> x :: xs in
+          as_kind @? as_ref @? as_not @? as_one_of @? as_any_of @? []
+        in
         let kind =
           match as_nary "allOf" All_of cases with
           | None -> Any (* no type, ref or logical combination found *)
