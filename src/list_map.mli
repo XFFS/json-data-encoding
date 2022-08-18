@@ -15,3 +15,7 @@
 val map_pure : ('a -> 'b) -> 'a list -> 'b list
 
 val mapi_pure : (int -> 'a -> 'b) -> 'a list -> 'b list
+
+(** [append] is a tail-rec variant of [List.append]. It special cases small
+    lists, and then it switches to [List.rev_append]. *)
+val append : 'a list -> 'a list -> 'a list

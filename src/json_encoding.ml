@@ -237,8 +237,7 @@ struct
           function
           | v1, v2 -> (
               match (Repr.view (w1 v1), Repr.view (w2 v2)) with
-              | `O l1, `O l2 ->
-                  Repr.repr (`O (List.rev_append (List.rev l1) l2))
+              | `O l1, `O l2 -> Repr.repr (`O (List_map.append l1 l2))
               | `Null, `Null | _ ->
                   invalid_arg
                     "Json_encoding.construct: consequence of bad merge_objs"))
@@ -251,8 +250,7 @@ struct
           function
           | v1, v2 -> (
               match (Repr.view (w1 v1), Repr.view (w2 v2)) with
-              | `A l1, `A l2 ->
-                  Repr.repr (`A (List.rev_append (List.rev l1) l2))
+              | `A l1, `A l2 -> Repr.repr (`A (List_map.append l1 l2))
               | _ ->
                   invalid_arg
                     "Json_encoding.construct: consequence of bad merge_tups"))
@@ -593,7 +591,7 @@ let schema ?definitions_path encoding =
       (fun (l1, b1, e1) ->
         List_map.map_pure
           (fun (l2, b2, e2) ->
-            ( List.rev_append (List.rev l1) l2,
+            ( List_map.append l1 l2,
               b1 || b2,
               match (e1, e2) with Some e, _ | _, Some e -> Some e | _ -> None ))
           l2)

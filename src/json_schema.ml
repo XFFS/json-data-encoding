@@ -809,7 +809,7 @@ module Make (Repr : Json_repr.Repr) = struct
   (*-- parser ----------------------------------------------------------------*)
 
   let at_path p = function
-    | Cannot_parse (l, err) -> Cannot_parse (List.rev_append (List.rev p) l, err)
+    | Cannot_parse (l, err) -> Cannot_parse (List_map.append p l, err)
     | exn -> exn
 
   let at_field n = at_path [`Field n]

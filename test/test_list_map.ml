@@ -58,3 +58,8 @@ let genfi =
 let testi f l = Crowbar.check_eq (Stdlib.List.mapi f l) (List_map.mapi_pure f l)
 
 let () = Crowbar.add_test ~name:"tail-rec list mapi" [genfi; genl] testi
+
+let testa l1 l2 =
+  Crowbar.check_eq (Stdlib.List.append l1 l2) (List_map.append l1 l2)
+
+let () = Crowbar.add_test ~name:"tail-rec list append" [genl; genl] testa

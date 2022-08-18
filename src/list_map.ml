@@ -410,3 +410,72 @@ let faster_mapi f l =
 let map_pure f l = faster_map f l
 
 let mapi_pure f l = faster_mapi f l
+
+let rec append rev_acc xs ys =
+  match xs with
+  | [] -> List.rev_append rev_acc ys
+  | [x1] -> List.rev_append rev_acc (x1 :: ys)
+  | [x1; x2] -> List.rev_append rev_acc (x1 :: x2 :: ys)
+  | [x1; x2; x3] -> List.rev_append rev_acc (x1 :: x2 :: x3 :: ys)
+  | [x1; x2; x3; x4] -> List.rev_append rev_acc (x1 :: x2 :: x3 :: x4 :: ys)
+  | [x1; x2; x3; x4; x5] ->
+      List.rev_append rev_acc (x1 :: x2 :: x3 :: x4 :: x5 :: ys)
+  | [x1; x2; x3; x4; x5; x6] ->
+      List.rev_append rev_acc (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: ys)
+  | [x1; x2; x3; x4; x5; x6; x7] ->
+      List.rev_append rev_acc (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: ys)
+  | [x1; x2; x3; x4; x5; x6; x7; x8] ->
+      List.rev_append
+        rev_acc
+        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: ys)
+  | [x1; x2; x3; x4; x5; x6; x7; x8; x9] ->
+      List.rev_append
+        rev_acc
+        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: ys)
+  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10] ->
+      List.rev_append
+        rev_acc
+        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: ys)
+  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11] ->
+      List.rev_append
+        rev_acc
+        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: ys)
+  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11; x12] ->
+      List.rev_append
+        rev_acc
+        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12
+       :: ys)
+  | x1
+    :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: xs
+    ->
+      append
+        (x12 :: x11 :: x10 :: x9 :: x8 :: x7 :: x6 :: x5 :: x4 :: x3 :: x2 :: x1
+       :: rev_acc)
+        xs
+        ys
+
+let append xs ys =
+  match xs with
+  | [] -> ys
+  | [x1] -> x1 :: ys
+  | [x1; x2] -> x1 :: x2 :: ys
+  | [x1; x2; x3] -> x1 :: x2 :: x3 :: ys
+  | [x1; x2; x3; x4] -> x1 :: x2 :: x3 :: x4 :: ys
+  | [x1; x2; x3; x4; x5] -> x1 :: x2 :: x3 :: x4 :: x5 :: ys
+  | [x1; x2; x3; x4; x5; x6] -> x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: ys
+  | [x1; x2; x3; x4; x5; x6; x7] -> x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: ys
+  | [x1; x2; x3; x4; x5; x6; x7; x8] ->
+      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: ys
+  | [x1; x2; x3; x4; x5; x6; x7; x8; x9] ->
+      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: ys
+  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10] ->
+      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: ys
+  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11] ->
+      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: ys
+  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11; x12] ->
+      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12
+      :: ys
+  | x1
+    :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: xs
+    ->
+      append [x12; x11; x10; x9; x8; x7; x6; x5; x4; x3; x2; x1] xs ys
