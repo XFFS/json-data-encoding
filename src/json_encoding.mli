@@ -554,11 +554,15 @@ val any_ezjson_value : Json_repr.ezjsonm encoding
 val any_document : Json_repr.any encoding
 
 (** A valid JSON object.
-    May raise {!Unexpected}. *)
+    May raise {!Unexpected}. Specifically, the [construct] or [destruct] (or
+    similar) function using this encoding will raise {!Unexpected} if given
+    anything other than an object to handle. *)
 val any_object : Json_repr.any encoding
 
 (** A valid JSON object in ezjsonm representation.
-    May raise {!Unexpected}. *)
+    May raise {!Unexpected}. Specifically, the [construct] or [destruct] (or
+    similar) function using this encoding will raise {!Unexpected} if given
+    anything other than an object to handle. *)
 val any_ezjson_object : Json_repr.ezjsonm encoding
 
 (** The encoding of a JSON schema, linked to its OCaml definiton. *)
