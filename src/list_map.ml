@@ -85,7 +85,7 @@ let rec plain_unrolled_prefix_5i map_suffix count i f l =
       [y1; y2; y3; y4]
   | x1 :: x2 :: x3 :: x4 :: x5 :: tail ->
       let tail =
-        if count <= 0 then map_suffix i f tail
+        if count <= 0 then map_suffix (i + 5) f tail
         else plain_unrolled_prefix_5i map_suffix (count - 1) (i + 5) f tail
       in
       let y5 = f (i + 4) x5 in
