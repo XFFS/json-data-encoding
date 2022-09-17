@@ -23,6 +23,19 @@
 (*                                                                           *)
 (*****************************************************************************)
 
+let large_lists_5kish =
+  [
+    List.init 5003 Fun.id;
+    List.init 5004 Fun.id;
+    List.init 5005 Fun.id;
+    List.init 5006 Fun.id;
+  ]
+let large_lists =
+  List.init 10
+    (fun i ->
+      let len = (i+1) * 1000 in
+      (List.init len Fun.id))
+
 let genf =
   let open Crowbar in
   choose
@@ -37,7 +50,20 @@ let genf =
 
 let genl =
   let open Crowbar in
-  list int
+  let large_list_gen =
+    List.mapi
+      (fun i l ->
+        with_printer (fun fmt _ -> Format.fprintf fmt "large_list_%d" (5003+i))
+        (const l))
+        large_lists_5kish
+    @
+    List.mapi
+      (fun i l ->
+        with_printer (fun fmt _ -> Format.fprintf fmt "large_list_%dk" (i+1))
+        (const l))
+        large_lists
+  in
+  choose ( list int :: large_list_gen )
 
 let test f l = Crowbar.check_eq (Stdlib.List.map f l) (List_map.map_pure f l)
 
