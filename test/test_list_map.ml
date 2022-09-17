@@ -23,13 +23,7 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-let large_lists_5kish =
-  [
-    List.init 5003 Fun.id;
-    List.init 5004 Fun.id;
-    List.init 5005 Fun.id;
-    List.init 5006 Fun.id;
-  ]
+let large_lists_5kish = List.init 20 (fun i -> List.init (5000 + i) Fun.id)
 
 let large_lists =
   List.init 10 (fun i ->

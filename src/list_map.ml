@@ -322,7 +322,7 @@ let chunked_tail_recursive_mapi_12 i f l =
         let y1 = f i x1 in
         [y1; y2; y3; y4; y5; y6; y7; y8; y9]
     | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10] ->
-        let y10 = f i x10 in
+        let y10 = f (i + 9) x10 in
         let y9 = f (i + 8) x9 in
         let y8 = f (i + 7) x8 in
         let y7 = f (i + 6) x7 in
@@ -398,13 +398,18 @@ let chunked_tail_recursive_mapi_12 i f l =
   | [] -> []
   | (i, first) :: rest -> map_all_tail_chunks (map_head_chunk i first) rest
 
+let limit =
+  match Sys.backend_type with
+  | Other "js_of_ocaml" -> 50
+  | Other _ | Native | Bytecode -> 1000
+
 (* Combines the 5x unrolled non-tail-recursive map for a prefix of 5000
    elements, followed by the tail-recursive new fast map for the remainder. *)
 let faster_map f l =
-  plain_unrolled_prefix_5 chunked_tail_recursive_map_12 1000 f l
+  plain_unrolled_prefix_5 chunked_tail_recursive_map_12 limit f l
 
 let faster_mapi f l =
-  plain_unrolled_prefix_5i chunked_tail_recursive_mapi_12 1000 0 f l
+  plain_unrolled_prefix_5i chunked_tail_recursive_mapi_12 limit 0 f l
 
 (* wrapper that is actually exported *)
 let map_pure f l = faster_map f l
