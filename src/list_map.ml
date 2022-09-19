@@ -96,7 +96,7 @@ let rec plain_unrolled_prefix_5i map_suffix count i f l =
       y1 :: y2 :: y3 :: y4 :: y5 :: tail
 
 (* Fast tail-recursive map for the list suffix. *)
-let chunked_tail_recursive_map_12 f l =
+let chunked_tail_recursive_map_12 =
   let rec split chunks l =
     match l with
     | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: tail ->
@@ -104,115 +104,8 @@ let chunked_tail_recursive_map_12 f l =
     | _ -> l :: chunks
   in
 
-  let map_head_chunk chunk =
-    match[@ocaml.warning "-8"] chunk with
-    | [] -> []
-    | [x1] ->
-        let y1 = f x1 in
-        [y1]
-    | [x1; x2] ->
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2]
-    | [x1; x2; x3] ->
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3]
-    | [x1; x2; x3; x4] ->
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4]
-    | [x1; x2; x3; x4; x5] ->
-        let y5 = f x5 in
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4; y5]
-    | [x1; x2; x3; x4; x5; x6] ->
-        let y6 = f x6 in
-        let y5 = f x5 in
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4; y5; y6]
-    | [x1; x2; x3; x4; x5; x6; x7] ->
-        let y7 = f x7 in
-        let y6 = f x6 in
-        let y5 = f x5 in
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4; y5; y6; y7]
-    | [x1; x2; x3; x4; x5; x6; x7; x8] ->
-        let y8 = f x8 in
-        let y7 = f x7 in
-        let y6 = f x6 in
-        let y5 = f x5 in
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8]
-    | [x1; x2; x3; x4; x5; x6; x7; x8; x9] ->
-        let y9 = f x9 in
-        let y8 = f x8 in
-        let y7 = f x7 in
-        let y6 = f x6 in
-        let y5 = f x5 in
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8; y9]
-    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10] ->
-        let y10 = f x10 in
-        let y9 = f x9 in
-        let y8 = f x8 in
-        let y7 = f x7 in
-        let y6 = f x6 in
-        let y5 = f x5 in
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10]
-    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11] ->
-        let y11 = f x11 in
-        let y10 = f x10 in
-        let y9 = f x9 in
-        let y8 = f x8 in
-        let y7 = f x7 in
-        let y6 = f x6 in
-        let y5 = f x5 in
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10; y11]
-    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11; x12] ->
-        let y12 = f x12 in
-        let y11 = f x11 in
-        let y10 = f x10 in
-        let y9 = f x9 in
-        let y8 = f x8 in
-        let y7 = f x7 in
-        let y6 = f x6 in
-        let y5 = f x5 in
-        let y4 = f x4 in
-        let y3 = f x3 in
-        let y2 = f x2 in
-        let y1 = f x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10; y11; y12]
-  in
-
-  let map_tail_chunk suffix chunk =
-    match[@ocaml.warning "-8"] chunk with
+  let map_chunk f suffix chunk =
+    match chunk with
     | x1
       :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: _
       ->
@@ -230,140 +123,28 @@ let chunked_tail_recursive_map_12 f l =
         let y1 = f x1 in
         y1 :: y2 :: y3 :: y4 :: y5 :: y6 :: y7 :: y8 :: y9 :: y10 :: y11 :: y12
         :: suffix
+    | l -> List.map f l
   in
 
-  let rec map_all_tail_chunks suffix chunks =
+  let rec map_chunks f suffix chunks =
     match chunks with
     | [] -> suffix
     | chunk :: more ->
-        (map_all_tail_chunks [@ocaml.tailcall])
-          (map_tail_chunk suffix chunk)
-          more
+        (map_chunks [@ocaml.tailcall]) f (map_chunk f suffix chunk) more
   in
+  fun f l ->
+    let chunks = split [] l in
+    map_chunks f [] chunks
 
-  let chunks = split [] l in
-
-  match chunks with
-  | [] -> []
-  | first :: rest -> map_all_tail_chunks (map_head_chunk first) rest
-
-let chunked_tail_recursive_mapi_12 i f l =
+let chunked_tail_recursive_mapi_12 =
   let rec split i chunks l =
     match l with
     | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: tail ->
         (split (i + 12) [@ocaml.tailcall]) ((i, l) :: chunks) tail
     | _ -> (i, l) :: chunks
   in
-
-  let map_head_chunk i chunk =
-    match[@ocaml.warning "-8"] chunk with
-    | [] -> []
-    | [x1] ->
-        let y1 = f i x1 in
-        [y1]
-    | [x1; x2] ->
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2]
-    | [x1; x2; x3] ->
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3]
-    | [x1; x2; x3; x4] ->
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4]
-    | [x1; x2; x3; x4; x5] ->
-        let y5 = f (i + 4) x5 in
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4; y5]
-    | [x1; x2; x3; x4; x5; x6] ->
-        let y6 = f (i + 5) x6 in
-        let y5 = f (i + 4) x5 in
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4; y5; y6]
-    | [x1; x2; x3; x4; x5; x6; x7] ->
-        let y7 = f (i + 6) x7 in
-        let y6 = f (i + 5) x6 in
-        let y5 = f (i + 4) x5 in
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4; y5; y6; y7]
-    | [x1; x2; x3; x4; x5; x6; x7; x8] ->
-        let y8 = f (i + 7) x8 in
-        let y7 = f (i + 6) x7 in
-        let y6 = f (i + 5) x6 in
-        let y5 = f (i + 4) x5 in
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8]
-    | [x1; x2; x3; x4; x5; x6; x7; x8; x9] ->
-        let y9 = f (i + 8) x9 in
-        let y8 = f (i + 7) x8 in
-        let y7 = f (i + 6) x7 in
-        let y6 = f (i + 5) x6 in
-        let y5 = f (i + 4) x5 in
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8; y9]
-    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10] ->
-        let y10 = f (i + 9) x10 in
-        let y9 = f (i + 8) x9 in
-        let y8 = f (i + 7) x8 in
-        let y7 = f (i + 6) x7 in
-        let y6 = f (i + 5) x6 in
-        let y5 = f (i + 4) x5 in
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10]
-    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11] ->
-        let y11 = f (i + 10) x11 in
-        let y10 = f (i + 9) x10 in
-        let y9 = f (i + 8) x9 in
-        let y8 = f (i + 7) x8 in
-        let y7 = f (i + 6) x7 in
-        let y6 = f (i + 5) x6 in
-        let y5 = f (i + 4) x5 in
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10; y11]
-    | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11; x12] ->
-        let y12 = f (i + 11) x12 in
-        let y11 = f (i + 10) x11 in
-        let y10 = f (i + 9) x10 in
-        let y9 = f (i + 8) x9 in
-        let y8 = f (i + 7) x8 in
-        let y7 = f (i + 6) x7 in
-        let y6 = f (i + 5) x6 in
-        let y5 = f (i + 4) x5 in
-        let y4 = f (i + 3) x4 in
-        let y3 = f (i + 2) x3 in
-        let y2 = f (i + 1) x2 in
-        let y1 = f i x1 in
-        [y1; y2; y3; y4; y5; y6; y7; y8; y9; y10; y11; y12]
-  in
-
-  let map_tail_chunk suffix (i, chunk) =
-    match[@ocaml.warning "-8"] chunk with
+  let map_chunk f suffix (i, chunk) =
+    match chunk with
     | x1
       :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: _
       ->
@@ -381,22 +162,19 @@ let chunked_tail_recursive_mapi_12 i f l =
         let y1 = f i x1 in
         y1 :: y2 :: y3 :: y4 :: y5 :: y6 :: y7 :: y8 :: y9 :: y10 :: y11 :: y12
         :: suffix
+    | l -> List.mapi (fun j x -> f (i + j) x) l
   in
 
-  let rec map_all_tail_chunks suffix chunks =
+  let rec map_chunks f suffix chunks =
     match chunks with
     | [] -> suffix
     | chunk :: more ->
-        (map_all_tail_chunks [@ocaml.tailcall])
-          (map_tail_chunk suffix chunk)
-          more
+        (map_chunks [@ocaml.tailcall]) f (map_chunk f suffix chunk) more
   in
 
-  let chunks = split i [] l in
-
-  match chunks with
-  | [] -> []
-  | (i, first) :: rest -> map_all_tail_chunks (map_head_chunk i first) rest
+  fun i f l ->
+    let chunks = split i [] l in
+    map_chunks f [] chunks
 
 let limit =
   match Sys.backend_type with
@@ -416,71 +194,17 @@ let map_pure f l = faster_map f l
 
 let mapi_pure f l = faster_mapi f l
 
-let rec append rev_acc xs ys =
-  match xs with
-  | [] -> List.rev_append rev_acc ys
-  | [x1] -> List.rev_append rev_acc (x1 :: ys)
-  | [x1; x2] -> List.rev_append rev_acc (x1 :: x2 :: ys)
-  | [x1; x2; x3] -> List.rev_append rev_acc (x1 :: x2 :: x3 :: ys)
-  | [x1; x2; x3; x4] -> List.rev_append rev_acc (x1 :: x2 :: x3 :: x4 :: ys)
-  | [x1; x2; x3; x4; x5] ->
-      List.rev_append rev_acc (x1 :: x2 :: x3 :: x4 :: x5 :: ys)
-  | [x1; x2; x3; x4; x5; x6] ->
-      List.rev_append rev_acc (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: ys)
-  | [x1; x2; x3; x4; x5; x6; x7] ->
-      List.rev_append rev_acc (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: ys)
-  | [x1; x2; x3; x4; x5; x6; x7; x8] ->
-      List.rev_append
-        rev_acc
-        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: ys)
-  | [x1; x2; x3; x4; x5; x6; x7; x8; x9] ->
-      List.rev_append
-        rev_acc
-        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: ys)
-  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10] ->
-      List.rev_append
-        rev_acc
-        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: ys)
-  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11] ->
-      List.rev_append
-        rev_acc
-        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: ys)
-  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11; x12] ->
-      List.rev_append
-        rev_acc
-        (x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12
-       :: ys)
-  | x1
-    :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: xs
-    ->
-      append
-        (x12 :: x11 :: x10 :: x9 :: x8 :: x7 :: x6 :: x5 :: x4 :: x3 :: x2 :: x1
-       :: rev_acc)
-        xs
-        ys
-
-let append xs ys =
+let rec append5 count xs ys =
   match xs with
   | [] -> ys
   | [x1] -> x1 :: ys
   | [x1; x2] -> x1 :: x2 :: ys
   | [x1; x2; x3] -> x1 :: x2 :: x3 :: ys
   | [x1; x2; x3; x4] -> x1 :: x2 :: x3 :: x4 :: ys
-  | [x1; x2; x3; x4; x5] -> x1 :: x2 :: x3 :: x4 :: x5 :: ys
-  | [x1; x2; x3; x4; x5; x6] -> x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: ys
-  | [x1; x2; x3; x4; x5; x6; x7] -> x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: ys
-  | [x1; x2; x3; x4; x5; x6; x7; x8] ->
-      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: ys
-  | [x1; x2; x3; x4; x5; x6; x7; x8; x9] ->
-      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: ys
-  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10] ->
-      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: ys
-  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11] ->
-      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: ys
-  | [x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11; x12] ->
-      x1 :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12
-      :: ys
-  | x1
-    :: x2 :: x3 :: x4 :: x5 :: x6 :: x7 :: x8 :: x9 :: x10 :: x11 :: x12 :: xs
-    ->
-      append [x12; x11; x10; x9; x8; x7; x6; x5; x4; x3; x2; x1] xs ys
+  | x1 :: x2 :: x3 :: x4 :: x5 :: tl ->
+      x1 :: x2 :: x3 :: x4 :: x5
+      ::
+      (if count > limit then List.rev_append (List.rev tl) ys
+      else append5 (count + 1) tl ys)
+
+let append xs ys = match ys with [] -> xs | _ -> append5 limit xs ys
