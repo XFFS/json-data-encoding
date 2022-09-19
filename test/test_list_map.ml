@@ -23,12 +23,30 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-let large_lists_5kish = List.init 20 (fun i -> List.init (5000 + i) Fun.id)
-
 let large_lists =
-  List.init 10 (fun i ->
-      let len = (i + 1) * 1000 in
-      List.init len Fun.id)
+  (* strands of
+     - 12 lists of consecutive lengths (the implementation uses chunks of 12 so
+       it's important to test all modulos of those lengths)
+     - spaced out by 1000-long chunks (arbitrary but also it's not 0mod12 so it
+       helps spread out the tests)
+     - starting at 4500 (so one test is under the cutoff of the 5000-long prefix
+       in the lib and the rest is beyond that limit) *)
+  let rec make12 acc prev i =
+    if i < 0 then prev :: acc
+    else
+      let acc = prev :: acc in
+      let prev = (6000 + i) :: prev in
+      make12 acc prev (i - 1)
+  in
+  let make12 acc base = make12 acc base 12 in
+  let rec make1000 acc prev i =
+    if i < 0 then prev :: acc
+    else
+      let acc = make12 acc prev in
+      let prev = List.rev_append (List.init 1000 Fun.id) prev in
+      make1000 acc prev (i - 1)
+  in
+  make1000 [] (List.init 4500 Fun.id) 5
 
 let genf =
   let open Crowbar in
@@ -45,18 +63,14 @@ let genf =
 let genl =
   let open Crowbar in
   let large_list_gen =
-    List.mapi
-      (fun i l ->
+    List.map
+      (fun l ->
         with_printer
-          (fun fmt _ -> Format.fprintf fmt "large_list_%d" (5003 + i))
+          (fun fmt _ ->
+            let l = List.length l in
+            Format.fprintf fmt "large_list(length:%d,mod12:%d)" l (l mod 12))
           (const l))
-      large_lists_5kish
-    @ List.mapi
-        (fun i l ->
-          with_printer
-            (fun fmt _ -> Format.fprintf fmt "large_list_%dk" (i + 1))
-            (const l))
-        large_lists
+      large_lists
   in
   choose (list int :: large_list_gen)
 
