@@ -57,6 +57,7 @@ let unexpected kind expected =
 type 't repr_agnostic_custom = {
   write : 'rt. (module Json_repr.Repr with type value = 'rt) -> 't -> 'rt;
   read : 'rf. (module Json_repr.Repr with type value = 'rf) -> 'rf -> 't;
+  is_object : bool;
 }
 
 (* The GADT definition for encodings. This type must be kept internal
@@ -164,6 +165,7 @@ module type S = sig
   val destruct : ?bson_relaxation:bool -> 't encoding -> repr_value -> 't
 
   val custom :
+    ?is_object:bool ->
     ('t -> repr_value) ->
     (repr_value -> 't) ->
     schema:Json_schema.schema ->
@@ -560,7 +562,7 @@ struct
 
   let destruct ?(bson_relaxation = false) e v = destruct ~bson_relaxation e v
 
-  let custom write read ~schema =
+  let custom ?(is_object = false) write read ~schema =
     let read : type tf. (module Json_repr.Repr with type value = tf) -> tf -> 't
         =
      fun (module Repr_f) repr ->
@@ -571,7 +573,7 @@ struct
      fun (module Repr_f) v ->
       Json_repr.convert (module Repr) (module Repr_f) (write v)
     in
-    Custom ({read; write}, schema)
+    Custom ({read; write; is_object}, schema)
 end
 
 module Ezjsonm_encoding = Make (Json_repr.Ezjsonm)
@@ -716,7 +718,11 @@ let schema ?definitions_path encoding =
         in
         let fake_self =
           Custom
-            ( {write = (fun _ _ -> assert false); read = (fun _ -> assert false)},
+            ( {
+                write = (fun _ _ -> assert false);
+                read = (fun _ -> assert false);
+                is_object = false;
+              },
               fake_schema )
         in
         let root =
@@ -1104,7 +1110,8 @@ let tup10 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 =
      Tups
        (Tup f1, Tups (Tup f2, Tups (Tup f3, Tups (Tup f4, Tups (Tup f5, rest))))))
 
-let repr_agnostic_custom {write; read} ~schema = Custom ({write; read}, schema)
+let repr_agnostic_custom {write; read; is_object} ~schema =
+  Custom ({write; read; is_object}, schema)
 
 let constant s = Constant s
 
@@ -1176,6 +1183,7 @@ let assoc :
     =
  fun ?definitions_path t ->
   Ezjsonm_encoding.custom
+    ~is_object:true
     (fun l ->
       `O
         (List_map.map_pure
@@ -1231,12 +1239,12 @@ let option : type t. t encoding -> t option encoding =
 let any_value =
   let read repr v = Json_repr.repr_to_any repr v in
   let write repr v = Json_repr.any_to_repr repr v in
-  Custom ({read; write}, Json_schema.any)
+  Custom ({read; write; is_object = false}, Json_schema.any)
 
 let any_ezjson_value =
   let read repr v = Json_repr.convert repr (module Json_repr.Ezjsonm) v in
   let write repr v = Json_repr.convert (module Json_repr.Ezjsonm) repr v in
-  Custom ({read; write}, Json_schema.any)
+  Custom ({read; write; is_object = false}, Json_schema.any)
 
 let any_document =
   let read :
@@ -1248,10 +1256,45 @@ let any_document =
     | k -> raise @@ unexpected k "array or object"
   in
   let write repr v = Json_repr.any_to_repr repr v in
-  Custom ({read; write}, Json_schema.any)
+  Custom ({read; write; is_object = false}, Json_schema.any)
+
+let any_object =
+  let read :
+      type tt.
+      (module Json_repr.Repr with type value = tt) -> tt -> Json_repr.any =
+   fun (module Repr) v ->
+    match Repr.view v with
+    | `O _ -> Json_repr.repr_to_any (module Repr) v
+    | k -> raise @@ unexpected k "object"
+  in
+  let write :
+      type tt.
+      (module Json_repr.Repr with type value = tt) -> Json_repr.any -> tt =
+   fun (module Repr) v ->
+    let r = Json_repr.any_to_repr (module Repr) v in
+    match Repr.view r with `O _ -> r | k -> raise @@ unexpected k "object"
+  in
+  Custom ({read; write; is_object = true}, Json_schema.any)
+
+let any_ezjson_object =
+  let read :
+      type tt.
+      (module Json_repr.Repr with type value = tt) -> tt -> Json_repr.ezjsonm =
+   fun (module Repr) v ->
+    match Repr.view v with
+    | `O _ -> Json_repr.convert (module Repr) (module Json_repr.Ezjsonm) v
+    | k -> raise @@ unexpected k "object"
+  in
+  let write repr v =
+    match v with
+    | `O _ -> Json_repr.convert (module Json_repr.Ezjsonm) repr v
+    | k -> raise @@ unexpected k "object"
+  in
+  Custom ({read; write; is_object = true}, Json_schema.any)
 
 let any_schema =
   Ezjsonm_encoding.custom
+    ~is_object:true
     Json_schema.to_json
     (fun j ->
       try Json_schema.of_json j
@@ -1283,6 +1326,7 @@ let merge_objs o1 o2 =
     | Union cases -> List.for_all (fun (Case {encoding = o}) -> is_obj o) cases
     | Mu {self} as enc -> is_obj (self enc)
     | Describe {encoding = t} -> is_obj t
+    | Custom ({is_object}, _) -> is_object
     | _ -> false
   in
   if is_obj o1 && is_obj o2 then Objs (o1, o2)

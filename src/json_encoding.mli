@@ -494,6 +494,7 @@ val union : 't case list -> 't encoding
     [raise (Cannot_destruct ([ (* location *)], exn))]
     to indicate an error, which will be relocated correctly. *)
 val custom :
+  ?is_object:bool ->
   ('t -> Json_repr.ezjsonm) ->
   (Json_repr.ezjsonm -> 't) ->
   schema:Json_schema.schema ->
@@ -551,6 +552,18 @@ val any_ezjson_value : Json_repr.ezjsonm encoding
 
 (** A valid JSON document (i.e. an array or object value). *)
 val any_document : Json_repr.any encoding
+
+(** A valid JSON object.
+    May raise {!Unexpected}. Specifically, the [construct] or [destruct] (or
+    similar) function using this encoding will raise {!Unexpected} if given
+    anything other than an object to handle. *)
+val any_object : Json_repr.any encoding
+
+(** A valid JSON object in ezjsonm representation.
+    May raise {!Unexpected}. Specifically, the [construct] or [destruct] (or
+    similar) function using this encoding will raise {!Unexpected} if given
+    anything other than an object to handle. *)
+val any_ezjson_object : Json_repr.ezjsonm encoding
 
 (** The encoding of a JSON schema, linked to its OCaml definiton. *)
 val any_schema : Json_schema.schema encoding
@@ -621,6 +634,7 @@ module type S = sig
 
   (** Same as {!custom} for a custom JSON representation. *)
   val custom :
+    ?is_object:bool ->
     ('t -> repr_value) ->
     (repr_value -> 't) ->
     schema:Json_schema.schema ->
@@ -656,6 +670,7 @@ module Make (Repr : Json_repr.Repr) : S with type repr_value = Repr.value
 type 't repr_agnostic_custom = {
   write : 'rt. (module Json_repr.Repr with type value = 'rt) -> 't -> 'rt;
   read : 'rf. (module Json_repr.Repr with type value = 'rf) -> 'rf -> 't;
+  is_object : bool;
 }
 
 (** A custom encoding, using custom encoders and a schema. *)
