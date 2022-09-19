@@ -325,8 +325,7 @@ module Repr = struct
               let fields =
                 match fields_or_cells with
                 | `O fields -> fields
-                | `A cells ->
-                    List_map.mapi_pure (fun i v -> (string_of_int i, v)) cells
+                | `A cells -> List.mapi (fun i v -> (string_of_int i, v)) cells
               in
               let update_size_stamp = reserve_size_stamp () in
               serialize_fields fields ;

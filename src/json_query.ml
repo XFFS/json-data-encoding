@@ -224,14 +224,10 @@ module Make (Repr : Json_repr.Repr) = struct
           Repr.repr (`A (List.rev_append (List.rev cells) [insert rempath]))
       (* multiple insertions *)
       | `Star :: rempath, Some (`A cells) ->
-          Repr.repr
-            (`A (List_map.map_pure (fun root -> insert ~root rempath) cells))
+          Repr.repr (`A (List.map (fun root -> insert ~root rempath) cells))
       | `Star :: rempath, Some (`O fields) ->
           Repr.repr
-            (`O
-              (List_map.map_pure
-                 (fun (n, root) -> (n, insert ~root rempath))
-                 fields))
+            (`O (List.map (fun (n, root) -> (n, insert ~root rempath)) fields))
       | [`Star], Some root -> merge path value (Repr.repr root)
       (* FIXME: make explicit unhandled cases *)
       | _, Some _ -> raise (Cannot_merge (revpath path))

@@ -125,8 +125,8 @@ let rec eq_element a b =
      && a.description = b.description
      && Option.map Json_repr.from_any a.default
         = Option.map Json_repr.from_any b.default
-     && Option.map (List_map.map_pure Json_repr.from_any) a.enum
-        = Option.map (List_map.map_pure Json_repr.from_any) b.enum
+     && Option.map (List.map Json_repr.from_any) a.enum
+        = Option.map (List.map Json_repr.from_any) b.enum
      && eq_kind a.kind b.kind && a.format = b.format && a.id = b.id
 
 and eq_kind a b =
@@ -621,7 +621,7 @@ module Make (Repr : Json_repr.Repr) = struct
                    specs.properties
                in
                let properties =
-                 List_map.map_pure
+                 List.map
                    (fun (n, elt, _, _) -> (n, obj (format_element elt)))
                    specs.properties
                in
@@ -633,7 +633,7 @@ module Make (Repr : Json_repr.Repr) = struct
                     specs.pattern_properties
                     (fun fs ->
                       `O
-                        (List_map.map_pure
+                        (List.map
                            (fun (n, elt) -> (n, obj (format_element elt)))
                            fs))
                @@ set_if_neq
@@ -652,7 +652,7 @@ module Make (Repr : Json_repr.Repr) = struct
                     specs.schema_dependencies
                     (fun fs ->
                       `O
-                        (List_map.map_pure
+                        (List.map
                            (fun (n, elt) -> (n, obj (format_element elt)))
                            fs))
                @@ set_if_cons
@@ -661,9 +661,9 @@ module Make (Repr : Json_repr.Repr) = struct
                     (fun fs ->
                       let property_dependencies =
                         let strings ls =
-                          List_map.map_pure (fun s -> Repr.repr (`String s)) ls
+                          List.map (fun s -> Repr.repr (`String s)) ls
                         in
-                        List_map.map_pure
+                        List.map
                           (fun (n, ls) -> (n, Repr.repr (`A (strings ls))))
                           fs
                       in
@@ -673,10 +673,7 @@ module Make (Repr : Json_repr.Repr) = struct
                set_always "type" (`String "array")
                @@ set_always
                     "items"
-                    (`A
-                      (List_map.map_pure
-                         (fun elt -> obj (format_element elt))
-                         elts))
+                    (`A (List.map (fun elt -> obj (format_element elt)) elts))
                @@ set_if_neq "minItems" specs.min_items 0 (fun i ->
                       `Float (float i))
                @@ set_if_some "maxItems" specs.max_items (fun i ->
@@ -707,10 +704,7 @@ module Make (Repr : Json_repr.Repr) = struct
                in
                set_always
                  (combinator c)
-                 (`A
-                   (List_map.map_pure
-                      (fun elt -> obj (format_element elt))
-                      elts))
+                 (`A (List.map (fun elt -> obj (format_element elt)) elts))
                @@ rest
            | Def_ref path ->
                set_always "$ref" (`String ("#" ^ json_pointer_of_path path))
@@ -781,7 +775,7 @@ module Make (Repr : Json_repr.Repr) = struct
       @@ set_if_some "default" default (fun j ->
              Repr.view (Json_repr.any_to_repr (module Repr) j))
       @@ set_if_some "enum" enum (fun js ->
-             `A (List_map.map_pure (Json_repr.any_to_repr (module Repr)) js))
+             `A (List.map (Json_repr.any_to_repr (module Repr)) js))
       @@ set_if_some "format" format (fun s -> `String s)
       @@ []
     in
@@ -809,7 +803,7 @@ module Make (Repr : Json_repr.Repr) = struct
   (*-- parser ----------------------------------------------------------------*)
 
   let at_path p = function
-    | Cannot_parse (l, err) -> Cannot_parse (List_map.append p l, err)
+    | Cannot_parse (l, err) -> Cannot_parse (List.append p l, err)
     | exn -> exn
 
   let at_field n = at_path [`Field n]
@@ -966,7 +960,7 @@ module Make (Repr : Json_repr.Repr) = struct
                 | k :: _ ->
                     raise (at_field "type" @@ at_index i @@ unexpected k "type")
               in
-              items 0 [] (List_map.map_pure Repr.view l)
+              items 0 [] (List.map Repr.view l)
           | Some k ->
               raise
                 (at_field "type" @@ unexpected k "type, type array or operator")
@@ -1031,7 +1025,7 @@ module Make (Repr : Json_repr.Repr) = struct
         in
         let enum =
           Option.map
-            (fun v -> List_map.map_pure (Json_repr.repr_to_any (module Repr)) v)
+            (fun v -> List.map (Json_repr.repr_to_any (module Repr)) v)
             (opt_array_field json "enum")
         in
         let format = opt_string_field json "format" in
@@ -1191,7 +1185,7 @@ module Make (Repr : Json_repr.Repr) = struct
                         (at_field "required" @@ at_index i
                        @@ unexpected k "string")
                 in
-                items 0 [] (List_map.map_pure Repr.view l)
+                items 0 [] (List.map Repr.view l)
           in
           let properties =
             match opt_field_view json "properties" with
@@ -1238,7 +1232,7 @@ module Make (Repr : Json_repr.Repr) = struct
                               @@ at_field n @@ at_index j
                               @@ unexpected k "string")
                       in
-                      strings 0 [] (List_map.map_pure Repr.view l)
+                      strings 0 [] (List.map Repr.view l)
                   | (n, k) :: _ ->
                       raise
                         (at_field "propertyDependencies"
@@ -1246,7 +1240,7 @@ module Make (Repr : Json_repr.Repr) = struct
                         @@ unexpected k "string array")
                   | [] -> List.rev sacc
                 in
-                sets [] (List_map.map_pure (fun (n, v) -> (n, Repr.view v)) l)
+                sets [] (List.map (fun (n, v) -> (n, Repr.view v)) l)
             | Some k ->
                 raise (at_field "propertyDependencies" @@ unexpected k "object")
           in

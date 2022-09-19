@@ -29,20 +29,19 @@ let l n =
 
 let lengths = [0; 1; 2; 16; 128; 4096; 2_000_000]
 
-(* NOTE: this test shows that the function is applied to the elements of the
-   list in *reversed* order. *)
 let test l =
   let aref = ref [] in
   let b =
-    List_map.map_pure
+    Json_data_encoding_stdlib.List.map
       (fun x ->
         aref := x :: !aref ;
         x)
       l
   in
   ignore b ;
+  assert (l = b) ;
   let a = !aref in
-  a = l
+  a = List.rev l
 
 let () = print_endline "side-effect order in tail-rec list map"
 
@@ -50,4 +49,6 @@ let result = List.for_all (fun length -> test (l length)) lengths
 
 let () =
   if result then print_endline "side-effect order in tail-rec list map: SUCCESS"
-  else print_endline "side-effect order in tail-rec list map: FAILURE"
+  else (
+    print_endline "side-effect order in tail-rec list map: FAILURE" ;
+    exit 1)

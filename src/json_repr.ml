@@ -136,10 +136,9 @@ let convert :
       let rec conv v =
         match Repr_f.view v with
         | (`Float _ | `Bool _ | `String _ | `Null) as v -> Repr_t.repr v
-        | `A values -> Repr_t.repr (`A (List_map.map_pure conv values))
+        | `A values -> Repr_t.repr (`A (List.map conv values))
         | `O values ->
-            Repr_t.repr
-              (`O (List_map.map_pure (fun (k, v) -> (k, conv v)) values))
+            Repr_t.repr (`O (List.map (fun (k, v) -> (k, conv v)) values))
       in
       conv v
 
@@ -210,12 +209,12 @@ let from_yojson non_basic =
   let rec to_basic non_basic =
     match non_basic with
     | `Intlit i -> `String i
-    | `Tuple l -> `List (List_map.map_pure to_basic l)
+    | `Tuple l -> `List (List.map to_basic l)
     | `Variant (label, Some x) -> `List [`String label; to_basic x]
     | `Variant (label, None) -> `String label
     | `Assoc l ->
-        `Assoc (List_map.map_pure (fun (key, value) -> (key, to_basic value)) l)
-    | `List l -> `List (List_map.map_pure to_basic l)
+        `Assoc (List.map (fun (key, value) -> (key, to_basic value)) l)
+    | `List l -> `List (List.map to_basic l)
     | `Int i -> `Int i
     | `Float f -> `Float f
     | `String s -> `String s
@@ -224,9 +223,8 @@ let from_yojson non_basic =
   in
   (* Rename `Assoc, `Int and `List *)
   let rec to_value : 'a. _ -> ([> ezjsonm] as 'a) = function
-    | `List l -> `A (List_map.map_pure to_value l)
-    | `Assoc l ->
-        `O (List_map.map_pure (fun (key, value) -> (key, to_value value)) l)
+    | `List l -> `A (List.map to_value l)
+    | `Assoc l -> `O (List.map (fun (key, value) -> (key, to_value value)) l)
     | `Int i -> `Float (float_of_int i)
     | `Float f -> `Float f
     | `Null -> `Null
@@ -237,8 +235,8 @@ let from_yojson non_basic =
 
 let to_yojson json =
   let rec aux : 'a. _ -> ([> yojson] as 'a) = function
-    | `A values -> `List (List_map.map_pure aux values)
-    | `O values -> `Assoc (List_map.map_pure (fun (k, v) -> (k, aux v)) values)
+    | `A values -> `List (List.map aux values)
+    | `O values -> `Assoc (List.map (fun (k, v) -> (k, aux v)) values)
     | `Float f ->
         let fract, intr = modf f in
         let max_intf = float 0x3F_FF_FF_FF in

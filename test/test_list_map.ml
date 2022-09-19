@@ -75,7 +75,9 @@ let genl =
   choose (list int :: large_list_gen)
 
 let test f l =
-  Crowbar.check_eq Stdlib.List.(rev (rev_map f l)) (List_map.map_pure f l)
+  Crowbar.check_eq
+    Stdlib.List.(rev (rev_map f l))
+    (Json_data_encoding_stdlib.List.map f l)
 
 let () = Crowbar.add_test ~name:"tail-rec list map" [genf; genl] test
 
@@ -98,13 +100,15 @@ let rev_mapi f l =
   rev_mapi [] 0 l
 
 let testi f l =
-  Crowbar.check_eq (Stdlib.List.rev (rev_mapi f l)) (List_map.mapi_pure f l)
+  Crowbar.check_eq
+    (Stdlib.List.rev (rev_mapi f l))
+    (Json_data_encoding_stdlib.List.mapi f l)
 
 let () = Crowbar.add_test ~name:"tail-rec list mapi" [genfi; genl] testi
 
 let testa l1 l2 =
   Crowbar.check_eq
     Stdlib.List.(rev_append (List.rev l1) l2)
-    (List_map.append l1 l2)
+    (Json_data_encoding_stdlib.List.append l1 l2)
 
 let () = Crowbar.add_test ~name:"tail-rec list append" [genl; genl] testa
