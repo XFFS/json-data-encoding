@@ -8,24 +8,26 @@ let tc_limit =
   | Other "js_of_ocaml" -> 50
   | Other _ | Native | Bytecode -> 1000
 
-let tail_append l1 l2 = List.rev_append (List.rev l1) l2
+let append_tc l1 l2 = List.rev_append (List.rev l1) l2
 
-let rec count_append l1 l2 count =
+let rec append_count l1 l2 ~count =
   match l1 with
   | [] -> l2
   | [x1] -> x1 :: l2
   | [x1; x2] -> x1 :: x2 :: l2
   | [x1; x2; x3] -> x1 :: x2 :: x3 :: l2
   | [x1; x2; x3; x4] -> x1 :: x2 :: x3 :: x4 :: l2
-  | x1 :: x2 :: x3 :: x4 :: x5 :: tl ->
+  | x1 :: x2 :: x3 :: x4 :: x5 :: l1' ->
       x1 :: x2 :: x3 :: x4 :: x5
       ::
-      (if count > tc_limit then tail_append tl l2
-      else count_append tl l2 (count + 1))
+      (if count > tc_limit then append_tc l1' l2
+      else append_count l1' l2 ~count:(count + 1))
 
-let append l1 l2 = match l2 with [] -> l1 | _ -> count_append l1 l2 0
+let append l1 l2 = match l2 with [] -> l1 | _ -> append_count l1 l2 ~count:0
 
-let tail_map xs ~f =
+let map_direct xs ~f = List.map f xs
+
+let map_tc xs ~f =
   let rec rise ys = function
     | [] -> ys
     | (y0, y1, y2, y3, y4, y5, y6, y7, y8) :: bs ->
@@ -43,11 +45,11 @@ let tail_map xs ~f =
         let y7 = f x7 in
         let y8 = f x8 in
         dive ((y0, y1, y2, y3, y4, y5, y6, y7, y8) :: bs) xs
-    | xs -> rise (List.map f xs) bs
+    | xs -> rise (map_direct ~f xs) bs
   in
   dive [] xs
 
-let rec count_map ~f l count =
+let rec map_count ~f l ~count =
   match l with
   | [] -> []
   | [x1] ->
@@ -76,9 +78,12 @@ let rec count_map ~f l count =
       let f5 = f x5 in
       f1 :: f2 :: f3 :: f4 :: f5
       ::
-      (if count > tc_limit then tail_map ~f tl else count_map ~f tl (count + 1))
+      (if count > tc_limit then map_tc ~f tl
+      else map_count ~f tl ~count:(count + 1))
 
-let tail_mapi xs ~f i =
+let mapi_direct xs ~f = List.mapi f xs
+
+let mapi_tc xs ~f i =
   let rec rise ys = function
     | [] -> ys
     | (y0, y1, y2, y3, y4, y5, y6, y7, y8) :: bs ->
@@ -96,11 +101,11 @@ let tail_mapi xs ~f i =
         let y7 = f (i + 7) x7 in
         let y8 = f (i + 8) x8 in
         dive (i + 9) ((y0, y1, y2, y3, y4, y5, y6, y7, y8) :: bs) xs
-    | xs -> rise (List.mapi (fun j x -> f (i + j) x) xs) bs
+    | xs -> rise (mapi_direct ~f:(fun j x -> f (i + j) x) xs) bs
   in
   dive i [] xs
 
-let rec count_mapi ~f l count i =
+let rec mapi_count ~f l ~count i =
   match l with
   | [] -> []
   | [x1] ->
@@ -129,9 +134,9 @@ let rec count_mapi ~f l count i =
       let f5 = f (i + 4) x5 in
       f1 :: f2 :: f3 :: f4 :: f5
       ::
-      (if count > tc_limit then tail_mapi ~f tl (i + 5)
-      else count_mapi ~f tl (count + 1) (i + 5))
+      (if count > tc_limit then mapi_tc ~f tl (i + 5)
+      else mapi_count ~f tl ~count:(count + 1) (i + 5))
 
-let map f l = count_map ~f l 0
+let map f l = map_count ~f l ~count:0
 
-let mapi f l = count_mapi ~f l 0 0
+let mapi f l = mapi_count ~f l ~count:0 0
