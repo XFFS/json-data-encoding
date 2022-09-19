@@ -74,7 +74,8 @@ let genl =
   in
   choose (list int :: large_list_gen)
 
-let test f l = Crowbar.check_eq (Stdlib.List.map f l) (List_map.map_pure f l)
+let test f l =
+  Crowbar.check_eq Stdlib.List.(rev (rev_map f l)) (List_map.map_pure f l)
 
 let () = Crowbar.add_test ~name:"tail-rec list map" [genf; genl] test
 
@@ -90,11 +91,20 @@ let genfi =
       const (fun i v -> Stdlib.max i (Stdlib.min 1024 v));
     ]
 
-let testi f l = Crowbar.check_eq (Stdlib.List.mapi f l) (List_map.mapi_pure f l)
+let rev_mapi f l =
+  let rec rev_mapi acc i xs =
+    match xs with [] -> acc | x :: xs -> rev_mapi (f i x :: acc) (i + 1) xs
+  in
+  rev_mapi [] 0 l
+
+let testi f l =
+  Crowbar.check_eq (Stdlib.List.rev (rev_mapi f l)) (List_map.mapi_pure f l)
 
 let () = Crowbar.add_test ~name:"tail-rec list mapi" [genfi; genl] testi
 
 let testa l1 l2 =
-  Crowbar.check_eq (Stdlib.List.append l1 l2) (List_map.append l1 l2)
+  Crowbar.check_eq
+    Stdlib.List.(rev_append (List.rev l1) l2)
+    (List_map.append l1 l2)
 
 let () = Crowbar.add_test ~name:"tail-rec list append" [genl; genl] testa
