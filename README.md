@@ -1,3 +1,5 @@
+**NOTE**: Forked from https://github.com/XFFS/json-data-encoding
+
 # json-data-encoding
 
 This library is a collection of type-aware JSON utilities for OCaml.

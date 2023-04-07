@@ -810,7 +810,7 @@ module Make (Repr : Json_repr.Repr) = struct
 
   let at_index i = at_path [`Index i]
 
-  let of_json ?(definitions_path = "/definitions/") json =
+  let of_json ?(validate_refs=true) ?(definitions_path = "/definitions/") json =
     (* parser combinators *)
     let opt_field obj n =
       match Repr.view obj with
@@ -898,6 +898,9 @@ module Make (Repr : Json_repr.Repr) = struct
             try path_of_json_pointer ~wildcards:false fragment
             with err -> raise (Cannot_parse ([], err))
           in
+          if not validate_refs then
+            Def_ref path
+          else
           try
             let raw = query path json in
             if not (definition_exists path !collected_definitions) then (
@@ -1295,7 +1298,7 @@ module Make (Repr : Json_repr.Repr) = struct
     (* check the domain of IDs *)
     List.iter
       (fun id ->
-        if not (List.mem_assoc id !collected_id_defs) then
+        if validate_refs && not (List.mem_assoc id !collected_id_defs) then
           raise
             (Cannot_parse
                ([], Dangling_reference Uri.(with_fragment empty (Some id)))))

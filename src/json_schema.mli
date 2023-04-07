@@ -214,7 +214,7 @@ val to_json : schema -> Json_repr.ezjsonm
 
     This function works with JSON data represented in the {!Json_repr.ezjsonm}
     format. See functor {!Make} for using another representation. *)
-val of_json : ?definitions_path:string -> Json_repr.ezjsonm -> schema
+val of_json : ?validate_refs:bool -> ?definitions_path:string -> Json_repr.ezjsonm -> schema
 
 (** Formats a JSON schema in human readable format. *)
 val pp : Format.formatter -> schema -> unit
@@ -253,5 +253,5 @@ module Make (Repr : Json_repr.Repr) : sig
   val to_json : schema -> Repr.value
 
   (** Same as {!of_json} for a custom JSON representation. *)
-  val of_json : ?definitions_path:string -> Repr.value -> schema
+  val of_json : ?validate_refs:bool -> ?definitions_path:string -> Repr.value -> schema
 end
